@@ -23,6 +23,69 @@ const LocationSetup = dynamic(() => import("@/components/location-setup"), {
   ),
 })
 
+// Replace the fallback components with real dynamic imports
+const PlaceSearch = dynamic(() => import("@/components/place-search"), {
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading search...</p>
+      </CardContent>
+    </Card>
+  ),
+})
+
+const LocationChat = dynamic(() => import("@/components/location-chat"), {
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading chat...</p>
+      </CardContent>
+    </Card>
+  ),
+})
+
+const UserPosts = dynamic(() => import("@/components/user-posts"), {
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Camera className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading posts...</p>
+      </CardContent>
+    </Card>
+  ),
+})
+
+const HotelBooking = dynamic(() => import("@/components/hotel-booking"), {
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Hotel className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading hotels...</p>
+      </CardContent>
+    </Card>
+  ),
+})
+
+const CreatePost = dynamic(() => import("@/components/create-post"), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-8 text-center">
+          <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-600">Loading create post...</p>
+        </CardContent>
+      </Card>
+    </div>
+  ),
+})
+
 // Simple fallback components to prevent import errors
 function PlaceSearchFallback() {
   return (
@@ -376,27 +439,35 @@ function AppContent() {
                 </Card>
               </div>
 
-              <UserPostsFallback />
+              <UserPosts currentLocation={currentLocation} userId={user?.id || ""} showAll={false} />
             </div>
           )}
 
-          {activeTab === "search" && <PlaceSearchFallback />}
-          {activeTab === "chat" && <LocationChatFallback />}
-          {activeTab === "posts" && <UserPostsFallback />}
-          {activeTab === "hotels" && <HotelBookingFallback />}
+          {activeTab === "search" && <PlaceSearch currentLocation={currentLocation} />}
+          {activeTab === "chat" && (
+            <LocationChat
+              currentLocation={currentLocation}
+              userId={user?.id || ""}
+              userName={user?.firstName || user?.emailAddresses?.[0]?.emailAddress || "Anonymous"}
+              userAvatar={user?.imageUrl || ""}
+            />
+          )}
+          {activeTab === "posts" && <UserPosts currentLocation={currentLocation} userId={user?.id || ""} />}
+          {activeTab === "hotels" && <HotelBooking currentLocation={currentLocation} userId={user?.id || ""} />}
         </main>
 
-        {/* Create Post Modal */}
         {showCreatePost && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md">
-              <CardContent className="p-8 text-center">
-                <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600 mb-4">Create post feature loading...</p>
-                <Button onClick={() => setShowCreatePost(false)}>Close</Button>
-              </CardContent>
-            </Card>
-          </div>
+          <CreatePost
+            currentLocation={currentLocation}
+            userId={user?.id || ""}
+            userName={user?.firstName || user?.emailAddresses?.[0]?.emailAddress || "Anonymous"}
+            userAvatar={user?.imageUrl || ""}
+            onClose={() => setShowCreatePost(false)}
+            onPostCreated={() => {
+              setShowCreatePost(false)
+              // Refresh posts if needed
+            }}
+          />
         )}
       </SignedIn>
     </div>
