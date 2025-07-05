@@ -54,9 +54,17 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
         {
           id: "demo1",
           name: "Sunset Paradise Resort",
-          price: 79,
+          price: 5500, // Changed from 79 to realistic INR price
           city: currentLocation!.city,
-          description: "Cozy rooms • Free breakfast • Near beach",
+          description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
+          image_url: "/placeholder.svg?height=240&width=400",
+        },
+        {
+          id: "demo2",
+          name: "City Center Hotel",
+          price: 8500, // Changed from 120 to realistic INR price
+          city: currentLocation!.city,
+          description: "Modern amenities • Business center • Gym • Restaurant",
           image_url: "/placeholder.svg?height=240&width=400",
         },
       ])
@@ -106,7 +114,7 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
               <BedDouble className="h-4 w-4 mr-2 text-orange-500" />
               {h.name}
             </CardTitle>
-            <Badge className="bg-green-100 text-green-700 font-medium">${h.price}/night</Badge>
+            <Badge className="bg-green-100 text-green-700 font-medium">₹{h.price}/night</Badge>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-gray-700 text-sm leading-relaxed">{h.description}</p>
