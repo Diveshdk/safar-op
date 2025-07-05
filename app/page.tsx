@@ -2,20 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { ClerkProvider, useUser, SignInButton, SignOutButton, SignedIn, SignedOut, useAuth } from "@clerk/nextjs"
-import {
-  MapPin,
-  Search,
-  MessageCircle,
-  Plus,
-  Hotel,
-  Camera,
-  Heart,
-  Users,
-  Plane,
-  Globe,
-  Star,
-  Route,
-} from "lucide-react"
+import { MapPin, Search, MessageCircle, Plus, Hotel, Camera, Heart, Users, Plane, Globe, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -44,18 +31,6 @@ const PlaceSearch = dynamic(() => import("@/components/place-search"), {
       <CardContent className="p-8 text-center">
         <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
         <p className="text-gray-600">Loading search...</p>
-      </CardContent>
-    </Card>
-  ),
-})
-
-const TripPlanner = dynamic(() => import("@/components/trip-planner"), {
-  ssr: false,
-  loading: () => (
-    <Card>
-      <CardContent className="p-8 text-center">
-        <Route className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-        <p className="text-gray-600">Loading trip planner...</p>
       </CardContent>
     </Card>
   ),
@@ -111,6 +86,51 @@ const CreatePost = dynamic(() => import("@/components/create-post"), {
   ),
 })
 
+// Simple fallback components to prevent import errors
+function PlaceSearchFallback() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Search feature loading...</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function LocationChatFallback() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Chat feature loading...</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function UserPostsFallback() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Camera className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Posts loading...</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function HotelBookingFallback() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Hotel className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Hotels loading...</p>
+      </CardContent>
+    </Card>
+  )
+}
+
 function AppContent() {
   const { user, isLoaded } = useUser()
   const { isSignedIn } = useAuth()
@@ -120,9 +140,10 @@ function AppContent() {
     name: string
     city: string
   } | null>(null)
-  const [activeTab, setActiveTab] = useState<"home" | "search" | "planner" | "chat" | "posts" | "hotels">("home")
+  const [activeTab, setActiveTab] = useState<"home" | "search" | "chat" | "posts" | "hotels">("home")
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [showLocationSetup, setShowLocationSetup] = useState(false)
+  const [postsRefreshTrigger, setPostsRefreshTrigger] = useState(0)
 
   useEffect(() => {
     if (user && !currentLocation) {
@@ -188,9 +209,9 @@ function AppContent() {
                   <p className="text-xs text-blue-200 mt-1">Get instant travel insights</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
-                  <Route className="h-10 w-10 mx-auto mb-3 text-green-200" />
-                  <p className="text-sm font-medium text-blue-100">AI Trip Planner</p>
-                  <p className="text-xs text-blue-200 mt-1">Complete trip itineraries</p>
+                  <MessageCircle className="h-10 w-10 mx-auto mb-3 text-purple-200" />
+                  <p className="text-sm font-medium text-blue-100">Live Local Chat</p>
+                  <p className="text-xs text-blue-200 mt-1">Connect with travelers</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
                   <Hotel className="h-10 w-10 mx-auto mb-3 text-pink-200" />
@@ -329,9 +350,8 @@ function AppContent() {
               {[
                 { id: "home", label: "Home", icon: Heart, color: "text-red-500" },
                 { id: "search", label: "Explore", icon: Search, color: "text-blue-500" },
-                { id: "planner", label: "Trip Planner", icon: Route, color: "text-green-500" },
-                { id: "chat", label: "Chat", icon: MessageCircle, color: "text-purple-500" },
-                { id: "posts", label: "Posts", icon: Camera, color: "text-pink-500" },
+                { id: "chat", label: "Chat", icon: MessageCircle, color: "text-green-500" },
+                { id: "posts", label: "Posts", icon: Camera, color: "text-purple-500" },
                 { id: "hotels", label: "Hotels", icon: Hotel, color: "text-orange-500" },
               ].map(({ id, label, icon: Icon, color }) => (
                 <button
@@ -373,18 +393,18 @@ function AppContent() {
                       Explore Places
                     </Button>
                     <Button
-                      onClick={() => setActiveTab("planner")}
+                      onClick={() => setActiveTab("chat")}
                       className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white"
                     >
-                      <Route className="h-4 w-4 mr-2" />
-                      Plan Trip
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Join Local Chat
                     </Button>
                   </div>
                 </div>
               </div>
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Card
                   className="hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => setActiveTab("search")}
@@ -394,18 +414,9 @@ function AppContent() {
                     <p className="text-sm font-medium">Explore</p>
                   </CardContent>
                 </Card>
-                <Card
-                  className="hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setActiveTab("planner")}
-                >
-                  <CardContent className="p-4 text-center">
-                    <Route className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                    <p className="text-sm font-medium">Plan Trip</p>
-                  </CardContent>
-                </Card>
                 <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab("chat")}>
                   <CardContent className="p-4 text-center">
-                    <MessageCircle className="h-8 w-8 mx-auto mb-2 text-purple-500" />
+                    <MessageCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
                     <p className="text-sm font-medium">Local Chat</p>
                   </CardContent>
                 </Card>
@@ -423,27 +434,22 @@ function AppContent() {
                   onClick={() => setShowCreatePost(true)}
                 >
                   <CardContent className="p-4 text-center">
-                    <Plus className="h-8 w-8 mx-auto mb-2 text-pink-500" />
+                    <Plus className="h-8 w-8 mx-auto mb-2 text-purple-500" />
                     <p className="text-sm font-medium">Share</p>
-                  </CardContent>
-                </Card>
-                <Card
-                  className="hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setActiveTab("posts")}
-                >
-                  <CardContent className="p-4 text-center">
-                    <Camera className="h-8 w-8 mx-auto mb-2 text-indigo-500" />
-                    <p className="text-sm font-medium">Posts</p>
                   </CardContent>
                 </Card>
               </div>
 
-              <UserPosts currentLocation={currentLocation} userId={user?.id || ""} showAll={false} />
+              <UserPosts
+                currentLocation={currentLocation}
+                userId={user?.id || ""}
+                showAll={false}
+                refreshTrigger={postsRefreshTrigger}
+              />
             </div>
           )}
 
           {activeTab === "search" && <PlaceSearch currentLocation={currentLocation} />}
-          {activeTab === "planner" && <TripPlanner currentLocation={currentLocation} />}
           {activeTab === "chat" && (
             <LocationChat
               currentLocation={currentLocation}
@@ -452,7 +458,9 @@ function AppContent() {
               userAvatar={user?.imageUrl || ""}
             />
           )}
-          {activeTab === "posts" && <UserPosts currentLocation={currentLocation} userId={user?.id || ""} />}
+          {activeTab === "posts" && (
+            <UserPosts currentLocation={currentLocation} userId={user?.id || ""} refreshTrigger={postsRefreshTrigger} />
+          )}
           {activeTab === "hotels" && <HotelBooking currentLocation={currentLocation} userId={user?.id || ""} />}
         </main>
 
@@ -465,7 +473,7 @@ function AppContent() {
             onClose={() => setShowCreatePost(false)}
             onPostCreated={() => {
               setShowCreatePost(false)
-              // Refresh posts if needed
+              setPostsRefreshTrigger((prev) => prev + 1)
             }}
           />
         )}
