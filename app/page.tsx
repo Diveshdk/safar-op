@@ -86,6 +86,18 @@ const CreatePost = dynamic(() => import("@/components/create-post"), {
   ),
 })
 
+const TripPlanner = dynamic(() => import("@/components/trip-planner"), {
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Plane className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading trip planner...</p>
+      </CardContent>
+    </Card>
+  ),
+})
+
 // Simple fallback components to prevent import errors
 function PlaceSearchFallback() {
   return (
@@ -140,7 +152,7 @@ function AppContent() {
     name: string
     city: string
   } | null>(null)
-  const [activeTab, setActiveTab] = useState<"home" | "search" | "chat" | "posts" | "hotels">("home")
+  const [activeTab, setActiveTab] = useState<"home" | "search" | "chat" | "posts" | "hotels" | "planner">("home")
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [showLocationSetup, setShowLocationSetup] = useState(false)
   const [postsRefreshTrigger, setPostsRefreshTrigger] = useState(0)
@@ -350,6 +362,7 @@ function AppContent() {
               {[
                 { id: "home", label: "Home", icon: Heart, color: "text-red-500" },
                 { id: "search", label: "Explore", icon: Search, color: "text-blue-500" },
+                { id: "planner", label: "Trip Planner", icon: Plane, color: "text-indigo-500" },
                 { id: "chat", label: "Chat", icon: MessageCircle, color: "text-green-500" },
                 { id: "posts", label: "Posts", icon: Camera, color: "text-purple-500" },
                 { id: "hotels", label: "Hotels", icon: Hotel, color: "text-orange-500" },
@@ -462,6 +475,7 @@ function AppContent() {
             <UserPosts currentLocation={currentLocation} userId={user?.id || ""} refreshTrigger={postsRefreshTrigger} />
           )}
           {activeTab === "hotels" && <HotelBooking currentLocation={currentLocation} userId={user?.id || ""} />}
+          {activeTab === "planner" && <TripPlanner currentLocation={currentLocation} />}
         </main>
 
         {showCreatePost && (
