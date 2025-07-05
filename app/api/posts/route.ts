@@ -11,22 +11,20 @@ export async function POST(request: Request) {
       .select(`
         id,
         user_id,
+        user_name,
+        user_avatar,
         title,
         content,
         city,
         image_url,
         likes,
         comments,
-        created_at,
-        profiles:user_id (
-          full_name,
-          avatar_url
-        )
+        created_at
       `)
-      .order("likes", { ascending: false })
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false }) // Show newest first
       .limit(20)
 
+    // Only filter by city if showAll is false and city is provided
     if (!showAll && city) {
       query = query.eq("city", city)
     }
@@ -42,29 +40,16 @@ export async function POST(request: Request) {
             id: "1",
             user_id: "user1",
             user_name: "Adventure Seeker",
+            user_avatar: "",
             title: "Hidden Gems in the Mountains",
             content:
               "Just discovered this amazing viewpoint that's not on any tourist map! The sunrise here is absolutely breathtaking. Perfect spot for photography and meditation.",
             city: city || "Mountain Region",
-            image_url: "https://example.com/image1.jpg",
+            image_url: "",
             likes: 15,
             comments: 3,
             created_at: new Date(Date.now() - 86400000).toISOString(),
             liked_by_user: false,
-          },
-          {
-            id: "2",
-            user_id: "user2",
-            user_name: "Foodie Explorer",
-            title: "Best Local Restaurant Find!",
-            content:
-              "Found this incredible family-run restaurant serving authentic local cuisine. The owner shared stories about traditional recipes passed down for generations. Must try their signature dish!",
-            city: city || "City Center",
-            image_url: "https://example.com/image2.jpg",
-            likes: 23,
-            comments: 7,
-            created_at: new Date(Date.now() - 172800000).toISOString(),
-            liked_by_user: true,
           },
         ],
       })
@@ -75,8 +60,8 @@ export async function POST(request: Request) {
       posts?.map((post) => ({
         id: post.id,
         user_id: post.user_id,
-        user_name: post.profiles?.full_name || "Anonymous",
-        user_avatar: post.profiles?.avatar_url,
+        user_name: post.user_name || "Anonymous",
+        user_avatar: post.user_avatar,
         title: post.title,
         content: post.content,
         city: post.city,

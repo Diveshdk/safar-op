@@ -143,6 +143,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<"home" | "search" | "chat" | "posts" | "hotels">("home")
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [showLocationSetup, setShowLocationSetup] = useState(false)
+  const [postsRefreshTrigger, setPostsRefreshTrigger] = useState(0)
 
   useEffect(() => {
     if (user && !currentLocation) {
@@ -439,7 +440,12 @@ function AppContent() {
                 </Card>
               </div>
 
-              <UserPosts currentLocation={currentLocation} userId={user?.id || ""} showAll={false} />
+              <UserPosts
+                currentLocation={currentLocation}
+                userId={user?.id || ""}
+                showAll={false}
+                refreshTrigger={postsRefreshTrigger}
+              />
             </div>
           )}
 
@@ -452,7 +458,9 @@ function AppContent() {
               userAvatar={user?.imageUrl || ""}
             />
           )}
-          {activeTab === "posts" && <UserPosts currentLocation={currentLocation} userId={user?.id || ""} />}
+          {activeTab === "posts" && (
+            <UserPosts currentLocation={currentLocation} userId={user?.id || ""} refreshTrigger={postsRefreshTrigger} />
+          )}
           {activeTab === "hotels" && <HotelBooking currentLocation={currentLocation} userId={user?.id || ""} />}
         </main>
 
@@ -465,7 +473,7 @@ function AppContent() {
             onClose={() => setShowCreatePost(false)}
             onPostCreated={() => {
               setShowCreatePost(false)
-              // Refresh posts if needed
+              setPostsRefreshTrigger((prev) => prev + 1)
             }}
           />
         )}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Heart, MessageCircle, MapPin, TrendingUp, Clock, Camera } from 'lucide-react'
+import { Heart, MessageCircle, MapPin, Clock, Camera } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,6 +11,7 @@ interface UserPostsProps {
   currentLocation: { lat: number; lng: number; name: string; city: string } | null
   userId: string
   showAll?: boolean
+  refreshTrigger?: number // Add this new prop
 }
 
 interface Post {
@@ -28,13 +29,13 @@ interface Post {
   liked_by_user: boolean
 }
 
-export default function UserPosts({ currentLocation, userId, showAll = false }: UserPostsProps) {
+export default function UserPosts({ currentLocation, userId, showAll = false, refreshTrigger }: UserPostsProps) {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadPosts()
-  }, [currentLocation, showAll])
+  }, [currentLocation, showAll, refreshTrigger]) // Add refreshTrigger here
 
   const loadPosts = async () => {
     try {
@@ -118,10 +119,9 @@ export default function UserPosts({ currentLocation, userId, showAll = false }: 
             <Camera className="h-12 w-12 mx-auto text-gray-400 mb-4" />
             <p className="text-gray-600 mb-2 font-medium">No posts yet</p>
             <p className="text-sm text-gray-500">
-              {showAll 
-                ? "Be the first to share your travel experience!" 
-                : `Be the first to share something about ${currentLocation?.city}!`
-              }
+              {showAll
+                ? "Be the first to share your travel experience!"
+                : `Be the first to share something about ${currentLocation?.city}!`}
             </p>
           </CardContent>
         </Card>
@@ -160,9 +160,9 @@ export default function UserPosts({ currentLocation, userId, showAll = false }: 
 
                 {post.image_url && (
                   <div className="mb-4 rounded-lg overflow-hidden">
-                    <img 
-                      src={post.image_url || "/placeholder.svg"} 
-                      alt="Post image" 
+                    <img
+                      src={post.image_url || "/placeholder.svg"}
+                      alt="Post image"
                       className="w-full h-48 sm:h-64 object-cover hover:scale-105 transition-transform duration-200"
                     />
                   </div>
@@ -182,14 +182,18 @@ export default function UserPosts({ currentLocation, userId, showAll = false }: 
                       <span>{post.likes}</span>
                     </Button>
 
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-1 text-gray-600 hover:bg-blue-50">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center space-x-1 text-gray-600 hover:bg-blue-50"
+                    >
                       <MessageCircle className="h-4 w-4" />
                       <span>{post.comments}</span>
                     </Button>
                   </div>
 
                   <div className="text-xs text-gray-500">
-                    {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(post.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>
               </CardContent>
