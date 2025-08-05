@@ -1,49 +1,31 @@
+// This is a client component, so it can use hooks like useRouter
 "use client"
 
-import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { useAuth } from "@clerk/nextjs"
 
-// Force dynamic rendering to prevent SSG issues
-export const dynamic = "force-dynamic"
-
-export default function AuthCallback() {
+export default function AuthCallbackPage() {
   const router = useRouter()
-  const { isLoaded, isSignedIn } = useAuth()
-  const [mounted, setMounted] = useState(false)
+  const { isSignedIn, isLoaded } = useAuth()
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (mounted && isLoaded) {
-      if (isSignedIn) {
-        // Redirect to home page after successful auth
-        router.push("/")
-      } else {
-        // If not signed in, redirect to sign in
-        router.push("/")
-      }
+    if (isLoaded && isSignedIn) {
+      // Redirect to the home page after successful sign-in
+      router.push("/")
+    } else if (isLoaded && !isSignedIn) {
+      // Optionally handle cases where sign-in fails or user is not signed in
+      // For now, we'll just redirect to home, which will show the SignedOut state
+      router.push("/")
     }
-  }, [router, mounted, isLoaded, isSignedIn])
-
-  if (!mounted || !isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Completing authentication...</p>
-        </div>
-      </div>
-    )
-  }
+  }, [isLoaded, isSignedIn, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-        <p className="text-gray-600">Redirecting...</p>
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-cyan-500 border-t-transparent mx-auto mb-6"></div>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Processing Authentication...</h1>
+        <p className="text-gray-600">Please wait while we redirect you.</p>
       </div>
     </div>
   )
