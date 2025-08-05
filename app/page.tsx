@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
-import dynamic from "next/dynamic"
+import dynamicImport from "next/dynamic"
 
 // Lazy load components
-const LocationSetup = dynamic(() => import("@/components/location-setup"), {
+const LocationSetup = dynamicImport(() => import("@/components/location-setup"), {
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -24,7 +24,7 @@ const LocationSetup = dynamic(() => import("@/components/location-setup"), {
   ),
 })
 
-const PlaceSearch = dynamic(() => import("@/components/place-search"), {
+const PlaceSearch = dynamicImport(() => import("@/components/place-search"), {
   ssr: false,
   loading: () => (
     <Card className="professional-card">
@@ -36,7 +36,7 @@ const PlaceSearch = dynamic(() => import("@/components/place-search"), {
   ),
 })
 
-const LocationChat = dynamic(() => import("@/components/location-chat"), {
+const LocationChat = dynamicImport(() => import("@/components/location-chat"), {
   ssr: false,
   loading: () => (
     <Card className="professional-card">
@@ -48,7 +48,7 @@ const LocationChat = dynamic(() => import("@/components/location-chat"), {
   ),
 })
 
-const UserPosts = dynamic(() => import("@/components/user-posts"), {
+const UserPosts = dynamicImport(() => import("@/components/user-posts"), {
   ssr: false,
   loading: () => (
     <Card className="professional-card">
@@ -60,7 +60,7 @@ const UserPosts = dynamic(() => import("@/components/user-posts"), {
   ),
 })
 
-const HotelBooking = dynamic(() => import("@/components/hotel-booking"), {
+const HotelBooking = dynamicImport(() => import("@/components/hotel-booking"), {
   ssr: false,
   loading: () => (
     <Card className="professional-card">
@@ -72,7 +72,7 @@ const HotelBooking = dynamic(() => import("@/components/hotel-booking"), {
   ),
 })
 
-const CreatePost = dynamic(() => import("@/components/create-post"), {
+const CreatePost = dynamicImport(() => import("@/components/create-post"), {
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -86,7 +86,7 @@ const CreatePost = dynamic(() => import("@/components/create-post"), {
   ),
 })
 
-const TripPlanner = dynamic(() => import("@/components/trip-planner"), {
+const TripPlanner = dynamicImport(() => import("@/components/trip-planner"), {
   ssr: false,
   loading: () => (
     <Card className="professional-card">
@@ -296,11 +296,9 @@ function AppContent() {
               <div className="grid md:grid-cols-3 gap-12 mb-16">
                 <div className="text-center">
                   <div className="w-32 h-32 mx-auto mb-8 relative">
-                    <img
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-08-06%20022849-lTcAS3z527wJyuGme3BDfKmb0B2jDy.png"
-                      alt="Tell us what you want"
-                      className="w-full h-full object-contain"
-                    />
+                    <div className="w-full h-full bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-full flex items-center justify-center">
+                      <Search className="h-16 w-16 text-cyan-600" />
+                    </div>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-4">Tell us what you want to do</h3>
                   <p className="text-gray-600">Fill out a 2-minute questionnaire about how you like to travel</p>
@@ -308,11 +306,9 @@ function AppContent() {
 
                 <div className="text-center">
                   <div className="w-32 h-32 mx-auto mb-8 relative">
-                    <img
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-08-06%20022849-lTcAS3z527wJyuGme3BDfKmb0B2jDy.png"
-                      alt="Share preferences"
-                      className="w-full h-full object-contain"
-                    />
+                    <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
+                      <Heart className="h-16 w-16 text-blue-600" />
+                    </div>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-4">Share Your Travel Preference & Dates</h3>
                   <p className="text-gray-600">It all happens online. We recommend everything to your vision</p>
@@ -320,11 +316,9 @@ function AppContent() {
 
                 <div className="text-center">
                   <div className="w-32 h-32 mx-auto mb-8 relative">
-                    <img
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-08-06%20022849-lTcAS3z527wJyuGme3BDfKmb0B2jDy.png"
-                      alt="Get recommendations"
-                      className="w-full h-full object-contain"
-                    />
+                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center">
+                      <Plane className="h-16 w-16 text-purple-600" />
+                    </div>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-800 mb-4">We'll give you tailored recommendations</h3>
                   <p className="text-gray-600">Once you're happy with your final plan, We handle everything for you</p>
@@ -465,11 +459,37 @@ function AppContent() {
                 </div>
 
                 <div className="travel-network">
-                  <img
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-08-06%20022909-JGhKstZ8RDgGdGfT9OkJRQbr5H3owG.png"
-                    alt="Travel Network"
-                    className="w-full max-w-md mx-auto"
-                  />
+                  <div className="relative w-full max-w-md mx-auto">
+                    <div className="grid grid-cols-3 gap-4 items-center">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">A</span>
+                      </div>
+                      <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold text-lg">B</span>
+                      </div>
+                      <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">C</span>
+                      </div>
+                      <div className="w-18 h-18 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">D</span>
+                      </div>
+                      <div className="w-24 h-24 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
+                        <Compass className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="w-18 h-18 bg-gradient-to-br from-pink-400 to-pink-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">E</span>
+                      </div>
+                      <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">F</span>
+                      </div>
+                      <div className="w-20 h-20 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold text-lg">G</span>
+                      </div>
+                      <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">H</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -488,7 +508,7 @@ function AppContent() {
                 <div className="lg:col-span-2">
                   <div className="professional-card overflow-hidden">
                     <img
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-08-06%20022917-9ubATfp5Dp1WP4KADMFJomR9r1IMqY.png"
+                      src="https://images.unsplash.com/photo-1537953773345-d172ccf13cf1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
                       alt="Best Activities in Bali"
                       className="w-full h-64 object-cover"
                     />
@@ -821,7 +841,7 @@ function AppContent() {
                 <div
                   className="h-64 bg-cover bg-center relative"
                   style={{
-                    backgroundImage: `linear-gradient(135deg, rgba(0, 188, 212, 0.8), rgba(0, 172, 193, 0.8)), url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')`,
+                    backgroundImage: `linear-gradient(135deg, rgba(6, 182, 212, 0.8), rgba(8, 145, 178, 0.8)), url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')`,
                   }}
                 >
                   <div className="absolute inset-0 p-8 text-white flex flex-col justify-center">

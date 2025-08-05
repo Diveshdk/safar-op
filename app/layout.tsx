@@ -23,13 +23,13 @@ export default function RootLayout({
       appearance={{
         baseTheme: undefined,
         variables: {
-          colorPrimary: "#3b82f6",
+          colorPrimary: "#06b6d4",
           colorBackground: "#ffffff",
           colorInputBackground: "#f8fafc",
           colorInputText: "#1e293b",
         },
         elements: {
-          formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white",
+          formButtonPrimary: "bg-cyan-500 hover:bg-cyan-600 text-white",
           card: "shadow-lg",
         },
       }}
