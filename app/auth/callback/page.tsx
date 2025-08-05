@@ -1,32 +1,49 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
-import { Compass } from "lucide-react"
+
+// Disable static generation for this page
+export const dynamic = "force-dynamic"
 
 export default function AuthCallback() {
-  const { isLoaded, isSignedIn } = useAuth()
   const router = useRouter()
+  const { isLoaded, isSignedIn } = useAuth()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (isLoaded) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && isLoaded) {
       if (isSignedIn) {
+        // Redirect to home page after successful auth
         router.push("/")
       } else {
+        // If not signed in, redirect to sign in
         router.push("/")
       }
     }
-  }, [isLoaded, isSignedIn, router])
+  }, [router, mounted, isLoaded, isSignedIn])
+
+  if (!mounted || !isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Completing authentication...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-sky-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="text-center">
-        <div className="w-16 h-16 bg-gradient-to-r from-sky-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <Compass className="w-8 h-8 text-white animate-spin" />
-        </div>
-        <h1 className="text-2xl font-semibold text-slate-800 mb-2">SAFAR</h1>
-        <p className="text-slate-600">Completing your sign in...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Redirecting...</p>
       </div>
     </div>
   )
