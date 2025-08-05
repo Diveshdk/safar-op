@@ -1,32 +1,39 @@
-// This is a client component, so it can use hooks like useRouter
 "use client"
 
+import { useAuth, useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { useAuth } from "@clerk/nextjs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
+
+export const dynamic = "force-dynamic"
 
 export default function AuthCallbackPage() {
-  const router = useRouter()
   const { isSignedIn, isLoaded } = useAuth()
+  const { user } = useUser()
+  const router = useRouter()
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      // Redirect to the home page after successful sign-in
+      // User is signed in, redirect to home or dashboard
       router.push("/")
     } else if (isLoaded && !isSignedIn) {
-      // Optionally handle cases where sign-in fails or user is not signed in
-      // For now, we'll just redirect to home, which will show the SignedOut state
-      router.push("/")
+      // User is not signed in, redirect to sign-in page
+      router.push("/sign-in")
     }
   }, [isLoaded, isSignedIn, router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-cyan-500 border-t-transparent mx-auto mb-6"></div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Processing Authentication...</h1>
-        <p className="text-gray-600">Please wait while we redirect you.</p>
-      </div>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Authenticating...</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center p-6">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500 dark:text-gray-400" />
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Please wait while we verify your identity.</p>
+        </CardContent>
+      </Card>
     </div>
   )
 }
