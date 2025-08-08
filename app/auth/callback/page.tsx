@@ -1,39 +1,50 @@
 "use client"
 
-import { useAuth, useUser } from "@clerk/nextjs"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+import { useAuth } from "@clerk/nextjs"
 
+// Disable static generation for this page
 export const dynamic = "force-dynamic"
 
-export default function AuthCallbackPage() {
-  const { isSignedIn, isLoaded } = useAuth()
-  const { user } = useUser()
+export default function AuthCallback() {
   const router = useRouter()
+  const { isLoaded, isSignedIn } = useAuth()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      // User is signed in, redirect to home or dashboard
-      router.push("/")
-    } else if (isLoaded && !isSignedIn) {
-      // User is not signed in, redirect to sign-in page
-      router.push("/sign-in")
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && isLoaded) {
+      if (isSignedIn) {
+        // Redirect to home page after successful auth
+        router.push("/")
+      } else {
+        // If not signed in, redirect to sign in
+        router.push("/")
+      }
     }
-  }, [isLoaded, isSignedIn, router])
+  }, [router, mounted, isLoaded, isSignedIn])
+
+  if (!mounted || !isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Completing authentication...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Authenticating...</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center p-6">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-500 dark:text-gray-400" />
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Please wait while we verify your identity.</p>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Redirecting...</p>
+      </div>
     </div>
   )
 }
