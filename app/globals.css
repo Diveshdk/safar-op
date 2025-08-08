@@ -23,7 +23,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
@@ -59,7 +59,7 @@
   }
 }
 
-/* Professional scrollbar styles */
+/* Custom scrollbar styles */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -69,45 +69,46 @@
   display: none;
 }
 
-/* Subtle animations */
+/* Smooth animations */
 * {
-  transition: all 0.15s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
-/* Professional container */
+/* Mobile-first responsive utilities */
 @media (max-width: 640px) {
   .container {
     @apply px-4;
   }
 }
 
-/* Professional gradient */
-.professional-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Custom gradient animations */
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-/* Clean glass effect */
-.glass-effect {
-  background: rgba(255, 255, 255, 0.95);
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Professional hover effects */
+/* Hover effects */
 .hover-lift {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition: transform 0.2s ease-in-out;
 }
 
 .hover-lift:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Professional button styles */
-.btn-primary {
-  @apply bg-slate-900 text-white hover:bg-slate-800 font-medium px-6 py-2.5 rounded-lg transition-colors;
-}
-
-.btn-secondary {
-  @apply bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 font-medium px-6 py-2.5 rounded-lg transition-colors;
+  transform: translateY(-2px);
 }

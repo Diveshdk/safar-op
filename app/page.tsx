@@ -2,34 +2,35 @@
 
 import { useEffect, useState } from "react"
 import { useUser, SignInButton, SignOutButton, SignedIn, SignedOut, useAuth } from "@clerk/nextjs"
-import { MapPin, Search, MessageCircle, Plus, Hotel, Camera, Heart, Users, Plane, Globe, Star, Building2, Briefcase } from 'lucide-react'
+import { MapPin, Search, MessageCircle, Plus, Hotel, Camera, Heart, Users, Plane, Globe, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import dynamic from "next/dynamic"
 
-// Lazy load components
+// Lazy load the real LocationSetup component
 const LocationSetup = dynamic(() => import("@/components/location-setup"), {
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md">
         <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading location setup...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading location setup...</p>
         </CardContent>
       </Card>
     </div>
   ),
 })
 
+// Replace the fallback components with real dynamic imports
 const PlaceSearch = dynamic(() => import("@/components/place-search"), {
   ssr: false,
   loading: () => (
     <Card>
       <CardContent className="p-8 text-center">
-        <Search className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-        <p className="text-slate-600">Loading search...</p>
+        <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading search...</p>
       </CardContent>
     </Card>
   ),
@@ -40,8 +41,8 @@ const LocationChat = dynamic(() => import("@/components/location-chat"), {
   loading: () => (
     <Card>
       <CardContent className="p-8 text-center">
-        <MessageCircle className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-        <p className="text-slate-600">Loading chat...</p>
+        <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading chat...</p>
       </CardContent>
     </Card>
   ),
@@ -52,8 +53,8 @@ const UserPosts = dynamic(() => import("@/components/user-posts"), {
   loading: () => (
     <Card>
       <CardContent className="p-8 text-center">
-        <Camera className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-        <p className="text-slate-600">Loading posts...</p>
+        <Camera className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading posts...</p>
       </CardContent>
     </Card>
   ),
@@ -64,8 +65,8 @@ const HotelBooking = dynamic(() => import("@/components/hotel-booking"), {
   loading: () => (
     <Card>
       <CardContent className="p-8 text-center">
-        <Hotel className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-        <p className="text-slate-600">Loading hotels...</p>
+        <Hotel className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading hotels...</p>
       </CardContent>
     </Card>
   ),
@@ -77,8 +78,8 @@ const CreatePost = dynamic(() => import("@/components/create-post"), {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md">
         <CardContent className="p-8 text-center">
-          <Plus className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-          <p className="text-slate-600">Loading create post...</p>
+          <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-600">Loading create post...</p>
         </CardContent>
       </Card>
     </div>
@@ -90,8 +91,8 @@ const TripPlanner = dynamic(() => import("@/components/trip-planner"), {
   loading: () => (
     <Card>
       <CardContent className="p-8 text-center">
-        <Plane className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-        <p className="text-slate-600">Loading trip planner...</p>
+        <Plane className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Loading trip planner...</p>
       </CardContent>
     </Card>
   ),
@@ -113,118 +114,116 @@ function AppContent() {
 
   useEffect(() => {
     if (user && !currentLocation) {
+      // Small delay to ensure smooth transition
       setTimeout(() => {
         setShowLocationSetup(true)
       }, 500)
     }
   }, [user, currentLocation])
 
+  // Loading state
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-300 border-t-slate-600 mx-auto mb-6"></div>
-          <h1 className="text-4xl font-bold mb-2 text-slate-800">SAFAR</h1>
-          <p className="text-slate-600">Loading your travel companion...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-6"></div>
+          <h1 className="text-4xl font-bold mb-2">🚀 SAFAR</h1>
+          <p className="text-blue-100">Loading your travel companion...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       <SignedOut>
-        <div className="min-h-screen bg-white relative overflow-hidden">
-          {/* Professional Header */}
-          <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center h-16">
-                <div className="flex items-center space-x-3">
-                  <Building2 className="h-8 w-8 text-slate-700" />
-                  <h1 className="text-2xl font-bold text-slate-800">SAFAR</h1>
-                  <span className="text-sm text-slate-500 font-medium">Professional Travel Platform</span>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <Button variant="ghost" className="text-slate-600 hover:text-slate-800">
-                    Features
-                  </Button>
-                  <Button variant="ghost" className="text-slate-600 hover:text-slate-800">
-                    About
-                  </Button>
+        <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 relative overflow-hidden">
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse delay-500"></div>
+          </div>
+
+          <div className="relative z-10 container mx-auto px-4 py-8 min-h-screen flex items-center">
+            <div className="max-w-lg mx-auto text-center text-white">
+              {/* Hero Section */}
+              <div className="mb-12">
+                <div className="mb-8">
+                  <div className="text-8xl mb-6 animate-bounce">🚀</div>
+                  <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+                    SAFAR
+                  </h1>
+                  <p className="text-2xl text-blue-100 mb-3 font-light">Smart AI-Powered Travel Companion</p>
+                  <div className="flex items-center justify-center space-x-2 text-blue-200">
+                    <Globe className="h-5 w-5" />
+                    <span>Discover</span>
+                    <span>•</span>
+                    <Users className="h-5 w-5" />
+                    <span>Connect</span>
+                    <span>•</span>
+                    <Plane className="h-5 w-5" />
+                    <span>Explore</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </nav>
 
-          {/* Hero Section */}
-          <div className="relative pt-16 pb-20 bg-gradient-to-br from-slate-50 to-slate-100">
-            <div className="container mx-auto px-4 text-center">
-              <div className="max-w-4xl mx-auto">
-                <div className="mb-8">
-                  <h1 className="text-5xl md:text-6xl font-bold text-slate-800 leading-tight mb-6">
-                    Professional Travel<br />
-                    <span className="text-slate-600">Management Platform</span>
-                  </h1>
-                  <p className="text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto">
-                    Streamline your travel planning with AI-powered insights, real-time collaboration, 
-                    and comprehensive destination intelligence.
-                  </p>
+              {/* Features Preview */}
+              <div className="grid grid-cols-2 gap-4 mb-12">
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
+                  <Search className="h-10 w-10 mx-auto mb-3 text-blue-200" />
+                  <p className="text-sm font-medium text-blue-100">AI-Powered Search</p>
+                  <p className="text-xs text-blue-200 mt-1">Get instant travel insights</p>
                 </div>
-
-                {/* Feature Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-                  <Card className="border-slate-200 hover-lift">
-                    <CardContent className="p-6 text-center">
-                      <Search className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                      <h3 className="text-lg font-semibold text-slate-800 mb-2">AI-Powered Research</h3>
-                      <p className="text-slate-600 text-sm">Get comprehensive destination insights and recommendations</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-slate-200 hover-lift">
-                    <CardContent className="p-6 text-center">
-                      <Users className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                      <h3 className="text-lg font-semibold text-slate-800 mb-2">Team Collaboration</h3>
-                      <p className="text-slate-600 text-sm">Connect with local experts and fellow travelers</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-slate-200 hover-lift">
-                    <CardContent className="p-6 text-center">
-                      <Briefcase className="h-12 w-12 mx-auto mb-4 text-slate-600" />
-                      <h3 className="text-lg font-semibold text-slate-800 mb-2">Business Tools</h3>
-                      <p className="text-slate-600 text-sm">Professional trip planning and expense management</p>
-                    </CardContent>
-                  </Card>
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
+                  <MessageCircle className="h-10 w-10 mx-auto mb-3 text-purple-200" />
+                  <p className="text-sm font-medium text-blue-100">Live Local Chat</p>
+                  <p className="text-xs text-blue-200 mt-1">Connect with travelers</p>
                 </div>
-
-                {/* CTA Section */}
-                <div className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200 max-w-md mx-auto">
-                  <h3 className="text-2xl font-bold text-slate-800 mb-2">Get Started Today</h3>
-                  <p className="text-slate-600 mb-6">Join thousands of professionals using SAFAR for their travel needs</p>
-
-                  <SignInButton mode="modal">
-                    <Button className="w-full btn-primary mb-4">
-                      <Briefcase className="h-4 w-4 mr-2" />
-                      Access Platform
-                    </Button>
-                  </SignInButton>
-
-                  <p className="text-sm text-slate-500">Secure authentication • Enterprise ready • GDPR compliant</p>
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
+                  <Hotel className="h-10 w-10 mx-auto mb-3 text-pink-200" />
+                  <p className="text-sm font-medium text-blue-100">Hotel Booking</p>
+                  <p className="text-xs text-blue-200 mt-1">Find perfect stays</p>
                 </div>
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105">
+                  <Star className="h-10 w-10 mx-auto mb-3 text-yellow-200" />
+                  <p className="text-sm font-medium text-blue-100">Travel Community</p>
+                  <p className="text-xs text-blue-200 mt-1">Share experiences</p>
+                </div>
+              </div>
 
-                {/* Trust Indicators */}
-                <div className="mt-12 flex items-center justify-center space-x-8 text-slate-500">
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
-                    <span className="text-sm font-medium">10,000+ Users</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Globe className="h-4 w-4 mr-2" />
-                    <span className="text-sm font-medium">50+ Countries</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 mr-2" />
-                    <span className="text-sm font-medium">4.9/5 Rating</span>
-                  </div>
+              {/* Sign In Section */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-2xl">
+                <h3 className="text-2xl font-bold mb-2">Ready to explore?</h3>
+                <p className="text-blue-100 mb-6">Join thousands of travelers discovering amazing places</p>
+
+                <SignInButton mode="modal">
+                  <Button
+                    className="w-full bg-white text-purple-600 hover:bg-blue-50 font-bold py-4 text-lg rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 mb-4"
+                    size="lg"
+                  >
+                    <span className="mr-2">🌟</span>
+                    Start Your Journey
+                    <span className="ml-2">→</span>
+                  </Button>
+                </SignInButton>
+
+                <p className="text-sm text-blue-200">Sign in with Google • Free forever • No credit card required</p>
+              </div>
+
+              {/* Trust Indicators */}
+              <div className="mt-8 flex items-center justify-center space-x-6 text-blue-200">
+                <div className="flex items-center">
+                  <Users className="h-4 w-4 mr-1" />
+                  <span className="text-sm">10K+ Travelers</span>
+                </div>
+                <div className="flex items-center">
+                  <Globe className="h-4 w-4 mr-1" />
+                  <span className="text-sm">50+ Countries</span>
+                </div>
+                <div className="flex items-center">
+                  <Star className="h-4 w-4 mr-1" />
+                  <span className="text-sm">4.9 Rating</span>
                 </div>
               </div>
             </div>
@@ -244,18 +243,17 @@ function AppContent() {
           />
         )}
 
-        {/* Professional Header */}
-        <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b sticky top-0 z-40">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3">
-                  <Building2 className="h-7 w-7 text-slate-700" />
-                  <h1 className="text-xl font-bold text-slate-800">SAFAR</h1>
-                </div>
+              <div className="flex items-center space-x-3">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  🚀 SAFAR
+                </h1>
                 {currentLocation && (
-                  <div className="hidden sm:flex items-center text-sm text-slate-600 bg-slate-100 rounded-lg px-3 py-1.5">
-                    <MapPin className="h-4 w-4 mr-1 text-slate-500" />
+                  <div className="hidden sm:flex items-center text-sm text-gray-600 bg-gray-100 rounded-full px-3 py-1">
+                    <MapPin className="h-4 w-4 mr-1 text-blue-500" />
                     {currentLocation.city}
                   </div>
                 )}
@@ -265,16 +263,16 @@ function AppContent() {
                 <Button
                   onClick={() => setShowCreatePost(true)}
                   size="sm"
-                  className="btn-primary"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full px-4"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  <span className="hidden sm:inline">New Post</span>
+                  <span className="hidden sm:inline">Post</span>
                 </Button>
 
                 {user && (
-                  <Avatar className="h-8 w-8 ring-2 ring-slate-200">
+                  <Avatar className="h-8 w-8 ring-2 ring-blue-200">
                     <AvatarImage src={user.imageUrl || "/placeholder.svg"} />
-                    <AvatarFallback className="bg-slate-600 text-white">
+                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                       {user.firstName?.charAt(0) ||
                         user.emailAddresses?.[0]?.emailAddress?.charAt(0)?.toUpperCase() ||
                         "U"}
@@ -283,7 +281,7 @@ function AppContent() {
                 )}
 
                 <SignOutButton>
-                  <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-800">
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
                     Sign Out
                   </Button>
                 </SignOutButton>
@@ -294,9 +292,9 @@ function AppContent() {
 
         {/* Mobile Location Bar */}
         {currentLocation && (
-          <div className="sm:hidden bg-slate-50 border-b px-4 py-2">
+          <div className="sm:hidden bg-blue-50 border-b px-4 py-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center text-sm text-slate-700">
+              <div className="flex items-center text-sm text-blue-700">
                 <MapPin className="h-4 w-4 mr-1" />
                 {currentLocation.city}
               </div>
@@ -304,7 +302,7 @@ function AppContent() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowLocationSetup(true)}
-                className="text-slate-600 text-xs"
+                className="text-blue-600 text-xs"
               >
                 Change
               </Button>
@@ -312,29 +310,29 @@ function AppContent() {
           </div>
         )}
 
-        {/* Professional Navigation */}
-        <nav className="bg-white border-b border-slate-200 sticky top-16 z-30">
+        {/* Navigation Tabs */}
+        <nav className="bg-white border-b sticky top-16 z-30">
           <div className="container mx-auto px-4">
             <div className="flex space-x-1 overflow-x-auto scrollbar-hide">
               {[
-                { id: "home", label: "Dashboard", icon: Heart, color: "text-slate-600" },
-                { id: "search", label: "Research", icon: Search, color: "text-slate-600" },
-                { id: "planner", label: "Planner", icon: Plane, color: "text-slate-600" },
-                { id: "chat", label: "Collaborate", icon: MessageCircle, color: "text-slate-600" },
-                { id: "posts", label: "Community", icon: Camera, color: "text-slate-600" },
-                { id: "hotels", label: "Accommodation", icon: Hotel, color: "text-slate-600" },
+                { id: "home", label: "Home", icon: Heart, color: "text-red-500" },
+                { id: "search", label: "Explore", icon: Search, color: "text-blue-500" },
+                { id: "planner", label: "Trip Planner", icon: Plane, color: "text-indigo-500" },
+                { id: "chat", label: "Chat", icon: MessageCircle, color: "text-green-500" },
+                { id: "posts", label: "Posts", icon: Camera, color: "text-purple-500" },
+                { id: "hotels", label: "Hotels", icon: Hotel, color: "text-orange-500" },
               ].map(({ id, label, icon: Icon, color }) => (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id as any)}
-                  className={`flex items-center space-x-2 py-3 px-4 border-b-2 transition-all whitespace-nowrap font-medium ${
+                  className={`flex items-center space-x-2 py-3 px-4 border-b-2 transition-all whitespace-nowrap ${
                     activeTab === id
-                      ? `border-slate-800 text-slate-800 bg-slate-50`
-                      : "border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+                      ? `border-blue-500 ${color} bg-blue-50`
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  <span className="text-sm">{label}</span>
+                  <span className="font-medium text-sm">{label}</span>
                 </button>
               ))}
             </div>
@@ -345,72 +343,67 @@ function AppContent() {
         <main className="container mx-auto px-4 py-6 pb-20">
           {activeTab === "home" && (
             <div className="space-y-6">
-              {/* Professional Welcome */}
-              <Card className="border-slate-200">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-800">
-                        Welcome back, {user?.firstName || "Professional"}
-                      </h2>
-                      <p className="text-slate-600 mt-1">
-                        Manage your travel projects and collaborate with your network
-                      </p>
-                    </div>
-                    <Building2 className="h-12 w-12 text-slate-400" />
-                  </div>
+              {/* Welcome Hero */}
+              <div className="relative bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 rounded-2xl p-6 text-white overflow-hidden">
+                <div className="relative z-10">
+                  <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                    Welcome back, {user?.firstName || "Traveler"}! 🌍
+                  </h2>
+                  <p className="text-blue-100 mb-4">
+                    Ready for your next adventure? Discover amazing places and connect with fellow travelers.
+                  </p>
                   <div className="flex flex-wrap gap-3">
                     <Button
                       onClick={() => setActiveTab("search")}
-                      className="btn-primary"
+                      className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white"
                     >
                       <Search className="h-4 w-4 mr-2" />
-                      Start Research
+                      Explore Places
                     </Button>
                     <Button
                       onClick={() => setActiveTab("chat")}
-                      className="btn-secondary"
+                      className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white"
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
-                      Join Discussion
+                      Join Local Chat
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              {/* Professional Quick Actions */}
+              {/* Quick Actions */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Card
-                  className="border-slate-200 hover-lift cursor-pointer"
+                  className="hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => setActiveTab("search")}
                 >
                   <CardContent className="p-4 text-center">
-                    <Search className="h-8 w-8 mx-auto mb-2 text-slate-600" />
-                    <p className="text-sm font-medium text-slate-700">Research</p>
+                    <Search className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+                    <p className="text-sm font-medium">Explore</p>
                   </CardContent>
                 </Card>
-                <Card className="border-slate-200 hover-lift cursor-pointer" onClick={() => setActiveTab("chat")}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab("chat")}>
                   <CardContent className="p-4 text-center">
-                    <MessageCircle className="h-8 w-8 mx-auto mb-2 text-slate-600" />
-                    <p className="text-sm font-medium text-slate-700">Collaborate</p>
+                    <MessageCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                    <p className="text-sm font-medium">Local Chat</p>
                   </CardContent>
                 </Card>
                 <Card
-                  className="border-slate-200 hover-lift cursor-pointer"
+                  className="hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => setActiveTab("hotels")}
                 >
                   <CardContent className="p-4 text-center">
-                    <Hotel className="h-8 w-8 mx-auto mb-2 text-slate-600" />
-                    <p className="text-sm font-medium text-slate-700">Book Stay</p>
+                    <Hotel className="h-8 w-8 mx-auto mb-2 text-orange-500" />
+                    <p className="text-sm font-medium">Hotels</p>
                   </CardContent>
                 </Card>
                 <Card
-                  className="border-slate-200 hover-lift cursor-pointer"
+                  className="hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => setShowCreatePost(true)}
                 >
                   <CardContent className="p-4 text-center">
-                    <Plus className="h-8 w-8 mx-auto mb-2 text-slate-600" />
-                    <p className="text-sm font-medium text-slate-700">Share</p>
+                    <Plus className="h-8 w-8 mx-auto mb-2 text-purple-500" />
+                    <p className="text-sm font-medium">Share</p>
                   </CardContent>
                 </Card>
               </div>
@@ -485,11 +478,11 @@ export default function HomePage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-300 border-t-slate-600 mx-auto mb-6"></div>
-          <h1 className="text-4xl font-bold mb-2 text-slate-800">SAFAR</h1>
-          <p className="text-slate-600">Loading your travel companion...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-6"></div>
+          <h1 className="text-4xl font-bold mb-2">🚀 SAFAR</h1>
+          <p className="text-blue-100">Loading your travel companion...</p>
         </div>
       </div>
     )
