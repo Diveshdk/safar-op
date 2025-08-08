@@ -1,16 +1,18 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { ClerkProvider } from "@clerk/nextjs"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "SAFAR - AI-Powered Travel Companion",
-  description: "Discover amazing places, plan perfect trips, and connect with fellow travelers using AI.",
+  title: "SAFAR - Smart AI-Powered Travel Companion",
+  description: "Discover amazing places, connect with fellow travelers, and get AI-powered recommendations",
     generator: 'v0.dev'
 }
+
+// Disable static generation for the entire app
+export const dynamic = "force-dynamic"
 
 export default function RootLayout({
   children,
@@ -18,25 +20,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      appearance={{
-        baseTheme: undefined,
-        variables: {
-          colorPrimary: "#3b82f6",
-          colorBackground: "#ffffff",
-          colorInputBackground: "#f8fafc",
-          colorInputText: "#1e293b",
-        },
-        elements: {
-          formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white",
-          card: "shadow-lg",
-        },
-      }}
-    >
-      <html lang="en">
-        <body className={inter.className}>{children}</body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <body className={inter.className}>{children}</body>
+    </html>
   )
 }

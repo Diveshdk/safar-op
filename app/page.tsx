@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useUser, SignInButton, SignOutButton, SignedIn, SignedOut, useAuth } from "@clerk/nextjs"
+import { ClerkProvider, useUser, SignInButton, SignOutButton, SignedIn, SignedOut, useAuth } from "@clerk/nextjs"
 import { MapPin, Search, MessageCircle, Plus, Hotel, Camera, Heart, Users, Plane, Globe, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -97,6 +97,51 @@ const TripPlanner = dynamic(() => import("@/components/trip-planner"), {
     </Card>
   ),
 })
+
+// Simple fallback components to prevent import errors
+function PlaceSearchFallback() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Search feature loading...</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function LocationChatFallback() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Chat feature loading...</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function UserPostsFallback() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Camera className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Posts loading...</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function HotelBookingFallback() {
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <Hotel className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+        <p className="text-gray-600">Hotels loading...</p>
+      </CardContent>
+    </Card>
+  )
+}
 
 function AppContent() {
   const { user, isLoaded } = useUser()
@@ -488,5 +533,37 @@ export default function HomePage() {
     )
   }
 
-  return <AppContent />
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+  if (!publishableKey) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Configuration Error</h1>
+          <p className="text-red-500">Missing Clerk publishable key</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <ClerkProvider
+      publishableKey={publishableKey}
+      appearance={{
+        baseTheme: undefined,
+        variables: {
+          colorPrimary: "#3b82f6",
+          colorBackground: "#ffffff",
+          colorInputBackground: "#f8fafc",
+          colorInputText: "#1e293b",
+        },
+        elements: {
+          formButtonPrimary: "bg-blue-600 hover:bg-blue-700 text-white",
+          card: "shadow-lg",
+        },
+      }}
+    >
+      <AppContent />
+    </ClerkProvider>
+  )
 }
