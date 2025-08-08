@@ -32,7 +32,6 @@ export default function LocationChat({ currentLocation, userId, userName, userAv
   const [loading, setLoading] = useState(false)
   const [connected, setConnected] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const wsRef = useRef<WebSocket | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -47,22 +46,14 @@ export default function LocationChat({ currentLocation, userId, userName, userAv
       connectWebSocket()
       loadMessages()
     }
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close()
-      }
-    }
   }, [currentLocation])
 
   const connectWebSocket = () => {
     if (!currentLocation) return
 
-    // Simulate WebSocket connection
     setConnected(true)
     setOnlineUsers(Math.floor(Math.random() * 15) + 3)
 
-    // Simulate real-time updates every 10 seconds
     const interval = setInterval(() => {
       if (Math.random() > 0.7) {
         loadMessages()
@@ -137,10 +128,10 @@ export default function LocationChat({ currentLocation, userId, userName, userAv
 
   if (!currentLocation) {
     return (
-      <Card>
+      <Card className="border-slate-200">
         <CardContent className="p-8 text-center">
-          <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600">Set your location to join local chat</p>
+          <MapPin className="h-12 w-12 mx-auto text-slate-400 mb-4" />
+          <p className="text-slate-600">Set your location to join professional discussions</p>
         </CardContent>
       </Card>
     )
@@ -149,12 +140,12 @@ export default function LocationChat({ currentLocation, userId, userName, userAv
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Local Chat 💬</h2>
-        <p className="text-gray-600">Connect with travelers in {currentLocation.city}</p>
+        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">Professional Network</h2>
+        <p className="text-slate-600">Connect with professionals in {currentLocation.city}</p>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
+      <Card className="overflow-hidden border-slate-200">
+        <CardHeader className="bg-slate-800 text-white">
           <CardTitle className="flex items-center justify-between text-lg">
             <div className="flex items-center">
               <MapPin className="h-5 w-5 mr-2" />
@@ -174,36 +165,36 @@ export default function LocationChat({ currentLocation, userId, userName, userAv
         </CardHeader>
         <CardContent className="p-0">
           {/* Messages Area */}
-          <div className="h-80 sm:h-96 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="h-80 sm:h-96 overflow-y-auto p-4 space-y-4 bg-slate-50">
             {messages.length === 0 ? (
-              <div className="text-center text-gray-500 mt-8">
-                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <div className="text-center text-slate-500 mt-8">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-slate-300" />
                 <p className="text-lg font-medium mb-2">No messages yet</p>
-                <p className="text-sm">Be the first to start a conversation in {currentLocation.city}!</p>
+                <p className="text-sm">Start a professional conversation in {currentLocation.city}!</p>
               </div>
             ) : (
               messages.map((message) => (
                 <div key={message.id} className="flex space-x-3">
                   <Avatar className="h-8 w-8 flex-shrink-0">
                     <AvatarImage src={message.user_avatar || "/placeholder.svg"} />
-                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs">
+                    <AvatarFallback className="bg-slate-600 text-white text-xs">
                       {message.user_name?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-medium text-sm truncate">{message.user_name}</span>
-                      <span className="text-xs text-gray-500 flex-shrink-0">
+                      <span className="font-medium text-sm truncate text-slate-800">{message.user_name}</span>
+                      <span className="text-xs text-slate-500 flex-shrink-0">
                         {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       {message.user_id === userId && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-600">
                           You
                         </Badge>
                       )}
                     </div>
-                    <div className="bg-white p-3 rounded-lg shadow-sm border">
-                      <p className="text-gray-700 text-sm break-words">{message.message}</p>
+                    <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+                      <p className="text-slate-700 text-sm break-words">{message.message}</p>
                     </div>
                   </div>
                 </div>
@@ -216,17 +207,17 @@ export default function LocationChat({ currentLocation, userId, userName, userAv
           <div className="p-4 border-t bg-white">
             <div className="flex space-x-2">
               <Input
-                placeholder={`Message travelers in ${currentLocation.city}...`}
+                placeholder={`Message professionals in ${currentLocation.city}...`}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="flex-1"
+                className="flex-1 border-slate-200"
                 maxLength={500}
               />
               <Button
                 onClick={sendMessage}
                 disabled={loading || !newMessage.trim()}
-                className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 px-4"
+                className="btn-primary px-4"
               >
                 {loading ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -235,21 +226,21 @@ export default function LocationChat({ currentLocation, userId, userName, userAv
                 )}
               </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Only travelers in {currentLocation.city} can see this chat
+            <p className="text-xs text-slate-500 mt-2">
+              Professional network for {currentLocation.city}
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Chat Guidelines */}
-      <Card>
+      {/* Professional Guidelines */}
+      <Card className="border-slate-200">
         <CardContent className="p-4">
-          <h4 className="font-medium mb-2 text-sm">💡 Chat Guidelines</h4>
-          <ul className="text-xs text-gray-600 space-y-1">
-            <li>• Share local tips and recommendations</li>
-            <li>• Ask questions about {currentLocation.city}</li>
-            <li>• Be respectful and helpful</li>
+          <h4 className="font-medium mb-2 text-sm text-slate-800">Professional Guidelines</h4>
+          <ul className="text-xs text-slate-600 space-y-1">
+            <li>• Share business insights and opportunities</li>
+            <li>• Ask professional questions about {currentLocation.city}</li>
+            <li>• Maintain professional courtesy</li>
             <li>• No spam or inappropriate content</li>
           </ul>
         </CardContent>

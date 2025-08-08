@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Hotel, BedDouble, Loader2, CalendarDays, MapPin } from "lucide-react"
+import { Hotel, BedDouble, Loader2, CalendarDays, MapPin } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,17 +20,12 @@ interface Props {
   userId: string
 }
 
-/**
- * Minimal hotel-booking list.
- * Later you can add CRUD endpoints (`/api/hotels`) and payment integration.
- */
 export default function HotelBooking({ currentLocation, userId }: Props) {
   const [hotels, setHotels] = useState<HotelInfo[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadHotels()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentLocation?.city])
 
   const loadHotels = async () => {
@@ -53,18 +48,18 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
       setHotels([
         {
           id: "demo1",
-          name: "Sunset Paradise Resort",
-          price: 5500, // Changed from 79 to realistic INR price
+          name: "Business Executive Hotel",
+          price: 5500,
           city: currentLocation!.city,
-          description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
+          description: "Executive rooms • Business center • Conference facilities • Premium location",
           image_url: "/placeholder.svg?height=240&width=400",
         },
         {
           id: "demo2",
-          name: "City Center Hotel",
-          price: 8500, // Changed from 120 to realistic INR price
+          name: "Corporate Suites",
+          price: 8500,
           city: currentLocation!.city,
-          description: "Modern amenities • Business center • Gym • Restaurant",
+          description: "Modern amenities • Meeting rooms • High-speed internet • Airport shuttle",
           image_url: "/placeholder.svg?height=240&width=400",
         },
       ])
@@ -75,10 +70,10 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
 
   if (!currentLocation) {
     return (
-      <Card>
+      <Card className="border-slate-200">
         <CardContent className="p-8 text-center">
-          <MapPin className="h-10 w-10 mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-600">Set location to view available hotels</p>
+          <MapPin className="h-10 w-10 mx-auto mb-4 text-slate-400" />
+          <p className="text-slate-600">Set location to view available accommodations</p>
         </CardContent>
       </Card>
     )
@@ -86,10 +81,10 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="border-slate-200">
         <CardContent className="p-8 text-center">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading hotels in {currentLocation.city}…</p>
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-slate-600" />
+          <p className="text-slate-600">Loading accommodations in {currentLocation.city}…</p>
         </CardContent>
       </Card>
     )
@@ -97,30 +92,30 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-slate-200">
         <CardHeader className="flex items-center">
-          <Hotel className="h-5 w-5 mr-2 text-orange-500" />
-          <CardTitle className="text-xl">Hotels in {currentLocation.city}</CardTitle>
+          <Hotel className="h-5 w-5 mr-2 text-slate-600" />
+          <CardTitle className="text-xl text-slate-800">Business Accommodations in {currentLocation.city}</CardTitle>
         </CardHeader>
       </Card>
 
       {hotels.map((h) => (
-        <Card key={h.id} className="overflow-hidden">
+        <Card key={h.id} className="overflow-hidden border-slate-200 hover-lift">
           {h.image_url && (
             <img src={h.image_url || "/placeholder.svg"} alt={h.name} className="w-full h-40 object-cover" />
           )}
           <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="flex items-center">
-              <BedDouble className="h-4 w-4 mr-2 text-orange-500" />
+            <CardTitle className="flex items-center text-slate-800">
+              <BedDouble className="h-4 w-4 mr-2 text-slate-600" />
               {h.name}
             </CardTitle>
-            <Badge className="bg-green-100 text-green-700 font-medium">₹{h.price}/night</Badge>
+            <Badge className="bg-slate-100 text-slate-700 font-medium">₹{h.price}/night</Badge>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-gray-700 text-sm leading-relaxed">{h.description}</p>
-            <Button size="sm" className="bg-gradient-to-r from-orange-500 to-pink-500 hover:opacity-90 text-white">
+            <p className="text-slate-700 text-sm leading-relaxed">{h.description}</p>
+            <Button size="sm" className="btn-primary">
               <CalendarDays className="h-4 w-4 mr-1" />
-              Book Now
+              Reserve Now
             </Button>
           </CardContent>
         </Card>
