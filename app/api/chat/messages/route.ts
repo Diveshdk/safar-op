@@ -1,35 +1,32 @@
+import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { city, lat, lng } = await request.json()
 
-    // Get messages for this city only
+    if (!city) {
+      return NextResponse.json({ error: "City is required" }, { status: 400 })
+    }
+
+    // Get messages for the specific city
     const { data: messages, error } = await supabase
       .from("chat_messages")
-      .select(`
-        id,
-        user_id,
-        user_name,
-        user_avatar,
-        message,
-        city,
-        created_at
-      `)
+      .select("*")
       .eq("city", city)
       .order("created_at", { ascending: true })
       .limit(50)
 
     if (error) {
-      console.error("Supabase error:", error)
-      return Response.json({ messages: [] })
+      console.error("Error fetching messages:", error)
+      return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 })
     }
 
-    return Response.json({ messages: messages || [] })
+    return NextResponse.json({ messages: messages || [] })
   } catch (error) {
-    console.error("Chat messages error:", error)
-    return Response.json({ error: "Failed to load messages" }, { status: 500 })
+    console.error("Error in chat messages API:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

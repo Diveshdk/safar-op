@@ -1,12 +1,17 @@
+import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { message, city, lat, lng, userId, userName, userAvatar } = await request.json()
 
-    // Insert message into database
+    if (!message || !city || !userId || !userName) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    // Insert the message into the database
     const { data, error } = await supabase
       .from("chat_messages")
       .insert([
@@ -14,22 +19,22 @@ export async function POST(request: Request) {
           user_id: userId,
           user_name: userName,
           user_avatar: userAvatar,
-          message: message,
+          message: message.trim(),
           city: city,
-          latitude: lat,
-          longitude: lng,
+          lat: lat,
+          lng: lng,
         },
       ])
       .select()
 
     if (error) {
-      console.error("Supabase error:", error)
-      return Response.json({ success: false, error: error.message }, { status: 500 })
+      console.error("Error inserting message:", error)
+      return NextResponse.json({ error: "Failed to send message" }, { status: 500 })
     }
 
-    return Response.json({ success: true, message: data })
+    return NextResponse.json({ success: true, message: data?.[0] })
   } catch (error) {
-    console.error("Send message error:", error)
-    return Response.json({ error: "Failed to send message" }, { status: 500 })
+    console.error("Error in chat send API:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

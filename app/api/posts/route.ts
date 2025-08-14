@@ -1,30 +1,15 @@
+import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { city, showAll, userId } = await request.json()
 
-    let query = supabase
-      .from("user_posts")
-      .select(`
-        id,
-        user_id,
-        user_name,
-        user_avatar,
-        title,
-        content,
-        city,
-        image_url,
-        likes,
-        comments,
-        created_at
-      `)
-      .order("created_at", { ascending: false }) // Show newest first
-      .limit(20)
+    let query = supabase.from("user_posts").select("*").order("created_at", { ascending: false }).limit(20)
 
-    // Only filter by city if showAll is false and city is provided
+    // Filter by city if not showing all posts
     if (!showAll && city) {
       query = query.eq("city", city)
     }
@@ -32,49 +17,42 @@ export async function POST(request: Request) {
     const { data: posts, error } = await query
 
     if (error) {
-      console.error("Supabase error:", error)
-      // Return mock data if database query fails
-      return Response.json({
-        posts: [
-          {
-            id: "1",
-            user_id: "user1",
-            user_name: "Adventure Seeker",
-            user_avatar: "",
-            title: "Hidden Gems in the Mountains",
-            content:
-              "Just discovered this amazing viewpoint that's not on any tourist map! The sunrise here is absolutely breathtaking. Perfect spot for photography and meditation.",
-            city: city || "Mountain Region",
-            image_url: "",
-            likes: 15,
-            comments: 3,
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-            liked_by_user: false,
-          },
-        ],
-      })
+      console.error("Error fetching posts:", error)
+      return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 })
     }
 
-    // Format posts
-    const formattedPosts =
+    // Check which posts the user has liked
+    if (userId && posts && posts.length > 0) {
+      const postIds = posts.map((post) => post.id)
+      const { data: likes, error: likesError } = await supabase
+        .from("post_likes")
+        .select("post_id")
+        .eq("user_id", userId)
+        .in("post_id", postIds)
+
+      if (!likesError && likes) {
+        const likedPostIds = new Set(likes.map((like) => like.post_id))
+
+        // Add liked_by_user field to each post
+        const postsWithLikeStatus = posts.map((post) => ({
+          ...post,
+          liked_by_user: likedPostIds.has(post.id),
+        }))
+
+        return NextResponse.json({ posts: postsWithLikeStatus })
+      }
+    }
+
+    // If no user ID or error checking likes, return posts without like status
+    const postsWithLikeStatus =
       posts?.map((post) => ({
-        id: post.id,
-        user_id: post.user_id,
-        user_name: post.user_name || "Anonymous",
-        user_avatar: post.user_avatar,
-        title: post.title,
-        content: post.content,
-        city: post.city,
-        image_url: post.image_url,
-        likes: post.likes || 0,
-        comments: post.comments || 0,
-        created_at: post.created_at,
-        liked_by_user: false, // Would need to check user's likes
+        ...post,
+        liked_by_user: false,
       })) || []
 
-    return Response.json({ posts: formattedPosts })
+    return NextResponse.json({ posts: postsWithLikeStatus })
   } catch (error) {
-    console.error("Posts error:", error)
-    return Response.json({ error: "Failed to load posts" }, { status: 500 })
+    console.error("Error in posts API:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

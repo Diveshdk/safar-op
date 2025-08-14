@@ -1,45 +1,54 @@
-// dynamic route – don’t prerender
-export const dynamic = "force-dynamic"
+import { type NextRequest, NextResponse } from "next/server"
 
-/**
- * Server-side forward-geocoding: converts a city (string)
- * to { name, lat, lng } using the Google Geocoding API.
- *
- * This keeps the GOOGLE_MAPS_API_KEY hidden from the client.
- */
-export async function GET(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url)
-    const city = searchParams.get("city")
+    const { address } = await request.json()
 
-    if (!city) {
-      return Response.json({ error: "Missing city parameter" }, { status: 400 })
+    if (!address) {
+      return NextResponse.json({ error: "Address is required" }, { status: 400 })
     }
 
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-        city,
-      )}&key=${process.env.GOOGLE_MAPS_API_KEY}`,
-    )
-
-    if (!res.ok) {
-      throw new Error(`Google Maps error: ${res.status}`)
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: "Google Maps API key not configured" }, { status: 500 })
     }
 
-    const data = await res.json()
-    const loc = data.results?.[0]
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
 
-    if (!loc) {
-      return Response.json({ error: "City not found" }, { status: 404 })
+    const response = await fetch(url)
+    const data = await response.json()
+
+    if (data.status === "OK" && data.results.length > 0) {
+      const result = data.results[0]
+      const location = result.geometry.location
+
+      // Extract city from address components
+      let city = ""
+      for (const component of result.address_components) {
+        if (component.types.includes("locality")) {
+          city = component.long_name
+          break
+        }
+        if (component.types.includes("administrative_area_level_2")) {
+          city = component.long_name
+          break
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        location: {
+          lat: location.lat,
+          lng: location.lng,
+          name: result.formatted_address,
+          city: city || address,
+        },
+      })
+    } else {
+      return NextResponse.json({ error: "Location not found" }, { status: 404 })
     }
-
-    return Response.json({
-      name: loc.formatted_address,
-      lat: loc.geometry.location.lat,
-      lng: loc.geometry.location.lng,
-    })
-  } catch (err) {
-    console.error(err)
-    return Response.json({ error: "Forward geocode failed" }, { status: 500 })
+  } catch (error) {
+    console.error("Error in forward geocode API:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
