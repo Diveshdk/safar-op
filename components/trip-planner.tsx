@@ -1,51 +1,51 @@
 "use client"
 
-import { useState } from "react"
-import {
-  MapPin,
-  Users,
-  Calendar,
-  IndianRupee,
-  Plane,
-  Clock,
-  Utensils,
-  Hotel,
-  Camera,
-  Lightbulb,
-  AlertTriangle,
-  Cloud,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
+import type React from "react"
 
-interface TripPlannerProps {
-  currentLocation: { lat: number; lng: number; name: string; city: string } | null
-}
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import {
+  CalendarDays,
+  MapPin,
+  DollarSign,
+  Clock,
+  Plane,
+  Hotel,
+  Utensils,
+  ShoppingBag,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react"
 
 interface TripPlan {
-  destination: string
-  totalBudget: number
-  budgetPerPerson: number
-  duration: string
-  travelers: number
-  budgetBreakdown: {
-    accommodation: { amount: string; percentage: string; details: string }
-    food: { amount: string; percentage: string; details: string }
-    transportation: { amount: string; percentage: string; details: string }
-    activities: { amount: string; percentage: string; details: string }
-    miscellaneous: { amount: string; percentage: string; details: string }
+  tripOverview: {
+    destination: string
+    duration: number
+    startDate: string
+    endDate: string
+    summary: string
+    highlights: string[]
+    totalEstimatedCost: string
+    bestTimeToVisit: string
   }
-  itinerary: Array<{
+  dailyItinerary: Array<{
     day: number
+    date: string
     title: string
     activities: Array<{
       time: string
       activity: string
       location: string
+      duration: string
       cost: string
       description: string
       tips: string
@@ -58,104 +58,92 @@ interface TripPlan {
       speciality: string
     }>
     accommodation: {
-      name: string
-      area: string
+      hotel: string
+      location: string
+      checkIn: string
       cost: string
-      amenities: string[]
     }
   }>
-  accommodationOptions: Array<{
+  accommodationDetails: Array<{
     name: string
     type: string
     location: string
     pricePerNight: string
+    totalNights: number
+    totalCost: string
     amenities: string[]
-    rating: string
-    bookingTip: string
-  }>
-  foodRecommendations: Array<{
-    name: string
-    location: string
-    cuisine: string
-    mustTry: string[]
-    averageCost: string
-    timing: string
-  }>
-  attractions: Array<{
-    name: string
-    location: string
-    entryFee: string
-    bestTime: string
-    duration: string
-    description: string
-    nearbyAttractions: string[]
+    bookingTips: string
+    alternatives: string[]
   }>
   transportation: {
     toDestination: {
-      options: Array<{
-        mode: string
-        from: string
-        cost: string
-        duration: string
-        bookingTips: string
-      }>
+      method: string
+      details: string
+      cost: string
+      duration: string
+      bookingTips: string
     }
-    local: {
-      options: Array<{
-        mode: string
-        cost: string
-        coverage: string
-        tips: string
-      }>
+    localTransport: Array<{
+      method: string
+      cost: string
+      tips: string
+    }>
+    fromDestination: {
+      method: string
+      cost: string
+      bookingTips: string
     }
   }
-  packingList: string[]
-  localTips: string[]
+  budgetBreakdown: {
+    accommodation: string
+    transportation: string
+    food: string
+    activities: string
+    shopping: string
+    miscellaneous: string
+    total: string
+    dailyAverage: string
+    budgetTips: string[]
+  }
+  packingList: {
+    clothing: string[]
+    electronics: string[]
+    documents: string[]
+    healthAndSafety: string[]
+    miscellaneous: string[]
+    weatherSpecific: string[]
+  }
+  importantTips: string[]
   emergencyInfo: {
-    localPolice: string
-    touristHelpline: string
-    hospitals: string[]
-    embassies: string
+    localEmergency: string
+    nearestHospital: string
+    embassy: string
+    importantContacts: string[]
+    safetyTips: string[]
   }
-  weatherInfo: {
-    currentSeason: string
-    whatToPack: string
-    bestTimeToVisit: string
-  }
+  bookingChecklist: Array<{
+    item: string
+    deadline: string
+    priority: string
+  }>
 }
 
-export default function TripPlanner({ currentLocation }: TripPlannerProps) {
+export default function TripPlanner() {
   const [destination, setDestination] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [budget, setBudget] = useState("")
-  const [days, setDays] = useState("")
-  const [people, setPeople] = useState("")
+  const [travelers, setTravelers] = useState("")
+  const [preferences, setPreferences] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [tripPlan, setTripPlan] = useState<TripPlan | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState("")
 
-  const handlePlanTrip = async () => {
-    if (!destination.trim() || !budget || !days || !people) {
-      setError("Please fill in all fields")
-      return
-    }
-
-    if (Number.parseInt(budget) < 1000) {
-      setError("Budget should be at least ₹1,000")
-      return
-    }
-
-    if (Number.parseInt(days) < 1 || Number.parseInt(days) > 30) {
-      setError("Trip duration should be between 1-30 days")
-      return
-    }
-
-    if (Number.parseInt(people) < 1 || Number.parseInt(people) > 20) {
-      setError("Number of people should be between 1-20")
-      return
-    }
-
-    setLoading(true)
-    setError(null)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    setTripPlan(null)
 
     try {
       const response = await fetch("/api/trip-planner", {
@@ -164,289 +152,385 @@ export default function TripPlanner({ currentLocation }: TripPlannerProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          destination: destination.trim(),
-          budget: Number.parseInt(budget),
-          days: Number.parseInt(days),
-          people: Number.parseInt(people),
+          destination,
+          startDate,
+          endDate,
+          budget,
+          travelers: Number.parseInt(travelers) || 1,
+          preferences,
         }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || `Planning failed: ${response.status}`)
+        throw new Error(data.error || "Failed to generate trip plan")
       }
 
       setTripPlan(data)
-    } catch (error) {
-      console.error("Trip planning error:", error)
-      setError(error instanceof Error ? error.message : "Failed to plan trip. Please try again.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">AI Trip Planner ✈️</h2>
-        <p className="text-gray-600">Get personalized travel plans with accurate costs in Indian Rupees</p>
-      </div>
-
-      {/* Trip Planning Form */}
-      <Card>
-        <CardHeader className="bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 text-white">
-          <CardTitle className="flex items-center">
-            <Plane className="h-5 w-5 mr-2" />
-            Plan Your Perfect Trip
+    <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+      <Card className="bg-white shadow-lg border-0 rounded-2xl">
+        <CardHeader className="bg-slate-800 text-white rounded-t-2xl p-6">
+          <CardTitle className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+            <Plane className="h-8 w-8" />
+            AI Trip Planner
           </CardTitle>
+          <CardDescription className="text-slate-200 text-base sm:text-lg">
+            Get personalized travel itineraries powered by AI
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                <MapPin className="h-4 w-4 inline mr-1" />
-                Destination
-              </label>
-              <Input
-                placeholder="e.g., Goa, Manali, Kerala, Rajasthan"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                className="text-lg"
-              />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="destination" className="text-sm font-semibold text-slate-700">
+                  Destination *
+                </Label>
+                <Input
+                  id="destination"
+                  type="text"
+                  placeholder="e.g., Goa, Kerala, Rajasthan"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  required
+                  className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="travelers" className="text-sm font-semibold text-slate-700">
+                  Number of Travelers *
+                </Label>
+                <Input
+                  id="travelers"
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="e.g., 2"
+                  value={travelers}
+                  onChange={(e) => setTravelers(e.target.value)}
+                  required
+                  className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startDate" className="text-sm font-semibold text-slate-700">
+                  Start Date *
+                </Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                  className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endDate" className="text-sm font-semibold text-slate-700">
+                  End Date *
+                </Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                  className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="budget" className="text-sm font-semibold text-slate-700">
+                  Budget Range
+                </Label>
+                <Select value={budget} onValueChange={setBudget}>
+                  <SelectTrigger className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl">
+                    <SelectValue placeholder="Select budget range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Budget">Budget (₹5,000-15,000)</SelectItem>
+                    <SelectItem value="Moderate">Moderate (₹15,000-35,000)</SelectItem>
+                    <SelectItem value="Luxury">Luxury (₹35,000+)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="preferences" className="text-sm font-semibold text-slate-700">
+                  Travel Preferences
+                </Label>
+                <Textarea
+                  id="preferences"
+                  placeholder="e.g., Adventure activities, cultural sites, food experiences, relaxation"
+                  value={preferences}
+                  onChange={(e) => setPreferences(e.target.value)}
+                  className="min-h-[100px] border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                <IndianRupee className="h-4 w-4 inline mr-1" />
-                Total Budget (₹)
-              </label>
-              <Input
-                type="number"
-                placeholder="e.g., 25000"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                min="1000"
-                className="text-lg"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                <Calendar className="h-4 w-4 inline mr-1" />
-                Number of Days
-              </label>
-              <Input
-                type="number"
-                placeholder="e.g., 5"
-                value={days}
-                onChange={(e) => setDays(e.target.value)}
-                min="1"
-                max="30"
-                className="text-lg"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                <Users className="h-4 w-4 inline mr-1" />
-                Number of People
-              </label>
-              <Input
-                type="number"
-                placeholder="e.g., 2"
-                value={people}
-                onChange={(e) => setPeople(e.target.value)}
-                min="1"
-                max="20"
-                className="text-lg"
-              />
-            </div>
-          </div>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Generating Your Perfect Trip...
+                </>
+              ) : (
+                <>
+                  <Plane className="mr-2 h-5 w-5" />
+                  Plan My Trip
+                </>
+              )}
+            </Button>
+          </form>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{error}</p>
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-center gap-2 text-red-800">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="font-semibold">Error:</span>
+                <span>{error}</span>
+              </div>
             </div>
           )}
-
-          <Button
-            onClick={handlePlanTrip}
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-3"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Creating Your Perfect Trip Plan...
-              </>
-            ) : (
-              <>
-                <Plane className="h-5 w-5 mr-2" />
-                Generate Trip Plan
-              </>
-            )}
-          </Button>
         </CardContent>
       </Card>
 
-      {/* Loading State */}
-      {loading && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h3 className="text-xl font-semibold mb-2">Planning Your Amazing Trip...</h3>
-            <p className="text-gray-600">Our AI is creating a personalized itinerary for {destination}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Trip Plan Results */}
-      {tripPlan && !loading && (
+      {tripPlan && (
         <div className="space-y-6">
           {/* Trip Overview */}
-          <Card className="overflow-hidden">
-            <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white p-6">
-              <h1 className="text-3xl font-bold mb-2">🎉 Your Trip to {tripPlan.destination}</h1>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-green-100">Total Budget</p>
-                  <p className="text-xl font-bold">₹{tripPlan.totalBudget.toLocaleString()}</p>
+          <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+              <CardTitle className="text-2xl sm:text-3xl font-bold">
+                {tripPlan.tripOverview.destination} Trip Overview
+              </CardTitle>
+              <CardDescription className="text-blue-100 text-base sm:text-lg">
+                {tripPlan.tripOverview.summary}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div className="text-center p-4 bg-blue-50 rounded-xl">
+                  <CalendarDays className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-slate-800">{tripPlan.tripOverview.duration}</div>
+                  <div className="text-sm text-slate-600">Days</div>
                 </div>
-                <div>
-                  <p className="text-green-100">Per Person</p>
-                  <p className="text-xl font-bold">₹{tripPlan.budgetPerPerson.toLocaleString()}</p>
+                <div className="text-center p-4 bg-emerald-50 rounded-xl">
+                  <DollarSign className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-slate-800">{tripPlan.tripOverview.totalEstimatedCost}</div>
+                  <div className="text-sm text-slate-600">Total Cost</div>
                 </div>
-                <div>
-                  <p className="text-green-100">Duration</p>
-                  <p className="text-xl font-bold">{tripPlan.duration}</p>
+                <div className="text-center p-4 bg-purple-50 rounded-xl">
+                  <MapPin className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                  <div className="text-lg font-bold text-slate-800">{tripPlan.tripOverview.startDate}</div>
+                  <div className="text-sm text-slate-600">Start Date</div>
                 </div>
-                <div>
-                  <p className="text-green-100">Travelers</p>
-                  <p className="text-xl font-bold">{tripPlan.travelers} people</p>
+                <div className="text-center p-4 bg-orange-50 rounded-xl">
+                  <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+                  <div className="text-lg font-bold text-slate-800">{tripPlan.tripOverview.endDate}</div>
+                  <div className="text-sm text-slate-600">End Date</div>
                 </div>
               </div>
-            </div>
+
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-slate-800">Trip Highlights</h3>
+                <div className="flex flex-wrap gap-2">
+                  {tripPlan.tripOverview.highlights.map((highlight, index) => (
+                    <Badge key={index} variant="secondary" className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                      {highlight}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
           </Card>
 
-          {/* Detailed Information Tabs */}
-          <Tabs defaultValue="budget" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7">
-              <TabsTrigger value="budget">Budget</TabsTrigger>
-              <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
-              <TabsTrigger value="hotels">Hotels</TabsTrigger>
-              <TabsTrigger value="food">Food</TabsTrigger>
-              <TabsTrigger value="attractions">Places</TabsTrigger>
-              <TabsTrigger value="transport">Transport</TabsTrigger>
-              <TabsTrigger value="tips">Tips</TabsTrigger>
+          {/* Detailed Tabs */}
+          <Tabs defaultValue="itinerary" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 h-auto p-1 bg-slate-100 rounded-xl">
+              <TabsTrigger
+                value="itinerary"
+                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Itinerary
+              </TabsTrigger>
+              <TabsTrigger
+                value="accommodation"
+                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Hotels
+              </TabsTrigger>
+              <TabsTrigger
+                value="transport"
+                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Transport
+              </TabsTrigger>
+              <TabsTrigger
+                value="budget"
+                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Budget
+              </TabsTrigger>
+              <TabsTrigger
+                value="packing"
+                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Packing
+              </TabsTrigger>
+              <TabsTrigger
+                value="tips"
+                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Tips
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="budget">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <IndianRupee className="h-5 w-5 mr-2 text-green-600" />
-                    Budget Breakdown
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(tripPlan.budgetBreakdown).map(([category, details]) => (
-                      <div key={category} className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-center mb-2">
-                          <h4 className="font-semibold capitalize">{category}</h4>
-                          <div className="text-right">
-                            <span className="text-lg font-bold text-green-600">{details.amount}</span>
-                            <span className="text-sm text-gray-500 ml-2">({details.percentage})</span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600">{details.details}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="itinerary">
-              <div className="space-y-4">
-                {tripPlan.itinerary.map((day) => (
-                  <Card key={day.day}>
-                    <CardHeader className="bg-blue-50">
-                      <CardTitle className="flex items-center">
-                        <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+            <TabsContent value="itinerary" className="mt-6">
+              <div className="space-y-6">
+                {tripPlan.dailyItinerary.map((day) => (
+                  <Card key={day.day} className="bg-white shadow-lg border-0 rounded-2xl">
+                    <CardHeader className="bg-slate-50 rounded-t-2xl p-6">
+                      <CardTitle className="text-xl font-bold text-slate-800">
                         Day {day.day}: {day.title}
                       </CardTitle>
+                      <CardDescription className="text-slate-600">{day.date}</CardDescription>
                     </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="space-y-6">
-                        {/* Activities */}
-                        <div>
-                          <h4 className="font-semibold mb-3 flex items-center">
-                            <Clock className="h-4 w-4 mr-1" />
-                            Activities
-                          </h4>
-                          <div className="space-y-3">
-                            {day.activities.map((activity, idx) => (
-                              <div key={idx} className="border-l-4 border-blue-500 pl-4">
-                                <div className="flex justify-between items-start mb-1">
-                                  <h5 className="font-medium">
-                                    {activity.time}: {activity.activity}
-                                  </h5>
-                                  <Badge variant="secondary">{activity.cost}</Badge>
+                    <CardContent className="p-6 space-y-6">
+                      <div>
+                        <h4 className="text-lg font-semibold text-slate-800 mb-4">Activities</h4>
+                        <div className="space-y-4">
+                          {day.activities.map((activity, index) => (
+                            <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-blue-600" />
+                                  <span className="font-semibold text-slate-800">{activity.time}</span>
+                                  <span className="text-slate-600">•</span>
+                                  <span className="font-medium text-slate-800">{activity.activity}</span>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-1">{activity.location}</p>
-                                <p className="text-sm">{activity.description}</p>
-                                <p className="text-xs text-blue-600 mt-1">💡 {activity.tips}</p>
+                                <Badge variant="outline" className="w-fit">
+                                  {activity.cost}
+                                </Badge>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Meals */}
-                        <div>
-                          <h4 className="font-semibold mb-3 flex items-center">
-                            <Utensils className="h-4 w-4 mr-1" />
-                            Meals
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            {day.meals.map((meal, idx) => (
-                              <div key={idx} className="bg-orange-50 p-3 rounded-lg">
-                                <div className="flex justify-between items-center mb-1">
-                                  <h5 className="font-medium">{meal.type}</h5>
-                                  <span className="text-sm font-semibold text-orange-600">{meal.cost}</span>
-                                </div>
-                                <p className="text-sm font-medium">{meal.restaurant}</p>
-                                <p className="text-xs text-gray-600">{meal.location}</p>
-                                <p className="text-xs text-orange-700 mt-1">🍽️ {meal.speciality}</p>
+                              <div className="text-sm text-slate-600 mb-1">
+                                <MapPin className="h-3 w-3 inline mr-1" />
+                                {activity.location} • {activity.duration}
                               </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Accommodation */}
-                        <div>
-                          <h4 className="font-semibold mb-3 flex items-center">
-                            <Hotel className="h-4 w-4 mr-1" />
-                            Accommodation
-                          </h4>
-                          <div className="bg-purple-50 p-4 rounded-lg">
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="font-medium">{day.accommodation.name}</h5>
-                              <span className="font-semibold text-purple-600">{day.accommodation.cost}/night</span>
+                              <p className="text-sm text-slate-700 mb-2">{activity.description}</p>
+                              <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded-lg">💡 {activity.tips}</p>
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{day.accommodation.area}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {day.accommodation.amenities.map((amenity, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
+                          ))}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div>
+                        <h4 className="text-lg font-semibold text-slate-800 mb-4">Meals</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {day.meals.map((meal, index) => (
+                            <div key={index} className="p-4 bg-emerald-50 rounded-xl">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Utensils className="h-4 w-4 text-emerald-600" />
+                                <span className="font-semibold text-slate-800">{meal.type}</span>
+                              </div>
+                              <div className="text-sm space-y-1">
+                                <div className="font-medium text-slate-800">{meal.restaurant}</div>
+                                <div className="text-slate-600">{meal.location}</div>
+                                <div className="text-emerald-600 font-semibold">{meal.cost}</div>
+                                <div className="text-xs text-slate-600">{meal.speciality}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="p-4 bg-purple-50 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Hotel className="h-4 w-4 text-purple-600" />
+                          <span className="font-semibold text-slate-800">Accommodation</span>
+                        </div>
+                        <div className="text-sm space-y-1">
+                          <div className="font-medium text-slate-800">{day.accommodation.hotel}</div>
+                          <div className="text-slate-600">{day.accommodation.location}</div>
+                          <div className="text-purple-600 font-semibold">{day.accommodation.cost}</div>
+                          <div className="text-xs text-slate-600">Check-in: {day.accommodation.checkIn}</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="accommodation" className="mt-6">
+              <div className="space-y-6">
+                {tripPlan.accommodationDetails.map((hotel, index) => (
+                  <Card key={index} className="bg-white shadow-lg border-0 rounded-2xl">
+                    <CardHeader className="p-6">
+                      <CardTitle className="text-xl font-bold text-slate-800">{hotel.name}</CardTitle>
+                      <CardDescription className="text-slate-600">
+                        {hotel.type} • {hotel.location}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-slate-800 mb-2">Pricing</h4>
+                            <div className="text-sm space-y-1">
+                              <div>
+                                Per Night: <span className="font-semibold text-emerald-600">{hotel.pricePerNight}</span>
+                              </div>
+                              <div>
+                                Total Nights: <span className="font-semibold">{hotel.totalNights}</span>
+                              </div>
+                              <div>
+                                Total Cost: <span className="font-semibold text-emerald-600">{hotel.totalCost}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-slate-800 mb-2">Amenities</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {hotel.amenities.map((amenity, i) => (
+                                <Badge key={i} variant="secondary" className="text-xs">
                                   {amenity}
                                 </Badge>
                               ))}
                             </div>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-semibold text-slate-800 mb-2">Booking Tips</h4>
+                            <p className="text-sm text-slate-600 bg-blue-50 p-3 rounded-lg">{hotel.bookingTips}</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-slate-800 mb-2">Alternatives</h4>
+                            <ul className="text-sm text-slate-600 space-y-1">
+                              {hotel.alternatives.map((alt, i) => (
+                                <li key={i}>• {alt}</li>
+                              ))}
+                            </ul>
                           </div>
                         </div>
                       </div>
@@ -456,289 +540,254 @@ export default function TripPlanner({ currentLocation }: TripPlannerProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="hotels">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Hotel className="h-5 w-5 mr-2 text-purple-600" />
-                    Accommodation Options
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {tripPlan.accommodationOptions.map((hotel, idx) => (
-                      <div key={idx} className="bg-purple-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-semibold">{hotel.name}</h4>
-                            <p className="text-sm text-gray-600">{hotel.location}</p>
-                          </div>
-                          <div className="text-right">
-                            <Badge
-                              variant={
-                                hotel.type === "Budget" ? "secondary" : hotel.type === "Luxury" ? "default" : "outline"
-                              }
-                            >
-                              {hotel.type}
-                            </Badge>
-                            <p className="text-lg font-bold text-purple-600 mt-1">{hotel.pricePerNight}/night</p>
-                            <p className="text-sm text-yellow-600">⭐ {hotel.rating}</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {hotel.amenities.map((amenity, amenityIdx) => (
-                            <Badge key={amenityIdx} variant="outline" className="text-xs">
-                              {amenity}
-                            </Badge>
-                          ))}
-                        </div>
-                        <p className="text-xs text-purple-700">💡 {hotel.bookingTip}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="food">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Utensils className="h-5 w-5 mr-2 text-orange-600" />
-                    Food Recommendations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {tripPlan.foodRecommendations.map((food, idx) => (
-                      <div key={idx} className="bg-orange-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-semibold">{food.name}</h4>
-                            <p className="text-sm text-gray-600">{food.location}</p>
-                            <Badge variant="outline" className="text-xs mt-1">
-                              {food.cuisine}
-                            </Badge>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-orange-600">{food.averageCost}</p>
-                            <p className="text-xs text-gray-500">{food.timing}</p>
-                          </div>
-                        </div>
-                        <div className="mb-2">
-                          <p className="text-sm font-medium mb-1">Must Try:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {food.mustTry.map((dish, dishIdx) => (
-                              <Badge key={dishIdx} variant="secondary" className="text-xs">
-                                {dish}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="attractions">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Camera className="h-5 w-5 mr-2 text-red-600" />
-                    Attractions & Places to Visit
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {tripPlan.attractions.map((attraction, idx) => (
-                      <div key={idx} className="bg-red-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-semibold">{attraction.name}</h4>
-                            <p className="text-sm text-gray-600">{attraction.location}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-red-600">{attraction.entryFee}</p>
-                            <p className="text-xs text-gray-500">{attraction.duration}</p>
-                          </div>
-                        </div>
-                        <p className="text-sm mb-2">{attraction.description}</p>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-red-700">🕒 Best time: {attraction.bestTime}</span>
-                        </div>
-                        {attraction.nearbyAttractions.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-xs font-medium mb-1">Nearby:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {attraction.nearbyAttractions.map((nearby, nearbyIdx) => (
-                                <Badge key={nearbyIdx} variant="outline" className="text-xs">
-                                  {nearby}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="transport">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Plane className="h-5 w-5 mr-2 text-blue-600" />
-                    Transportation Guide
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* To Destination */}
-                  <div>
-                    <h4 className="font-semibold mb-3">Getting to {tripPlan.destination}</h4>
-                    <div className="space-y-3">
-                      {tripPlan.transportation.toDestination.options.map((option, idx) => (
-                        <div key={idx} className="bg-blue-50 p-4 rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h5 className="font-medium">{option.mode}</h5>
-                              <p className="text-sm text-gray-600">From: {option.from}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold text-blue-600">{option.cost}</p>
-                              <p className="text-xs text-gray-500">{option.duration}</p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-blue-700">💡 {option.bookingTips}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Local Transportation */}
-                  <div>
-                    <h4 className="font-semibold mb-3">Local Transportation</h4>
-                    <div className="space-y-3">
-                      {tripPlan.transportation.local.options.map((option, idx) => (
-                        <div key={idx} className="bg-green-50 p-4 rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h5 className="font-medium">{option.mode}</h5>
-                              <p className="text-sm text-gray-600">Coverage: {option.coverage}</p>
-                            </div>
-                            <p className="font-semibold text-green-600">{option.cost}</p>
-                          </div>
-                          <p className="text-xs text-green-700">💡 {option.tips}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="tips">
+            <TabsContent value="transport" className="mt-6">
               <div className="space-y-6">
-                {/* Packing List */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Camera className="h-5 w-5 mr-2 text-purple-600" />
-                      Packing Checklist
-                    </CardTitle>
+                <Card className="bg-white shadow-lg border-0 rounded-2xl">
+                  <CardHeader className="p-6">
+                    <CardTitle className="text-xl font-bold text-slate-800">To Destination</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {tripPlan.packingList.map((item, idx) => (
-                        <div key={idx} className="flex items-center space-x-2">
-                          <input type="checkbox" className="rounded" />
-                          <span className="text-sm">{item}</span>
+                  <CardContent className="p-6 pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="font-semibold">Method:</span> {tripPlan.transportation.toDestination.method}
+                        </div>
+                        <div className="text-sm">
+                          <span className="font-semibold">Cost:</span>{" "}
+                          <span className="text-emerald-600">{tripPlan.transportation.toDestination.cost}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="font-semibold">Duration:</span>{" "}
+                          {tripPlan.transportation.toDestination.duration}
+                        </div>
+                        <div className="text-sm">
+                          <span className="font-semibold">Details:</span>{" "}
+                          {tripPlan.transportation.toDestination.details}
+                        </div>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-xl">
+                        <h4 className="font-semibold text-slate-800 mb-2">Booking Tips</h4>
+                        <p className="text-sm text-slate-600">{tripPlan.transportation.toDestination.bookingTips}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white shadow-lg border-0 rounded-2xl">
+                  <CardHeader className="p-6">
+                    <CardTitle className="text-xl font-bold text-slate-800">Local Transportation</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {tripPlan.transportation.localTransport.map((transport, index) => (
+                        <div key={index} className="p-4 bg-slate-50 rounded-xl">
+                          <h4 className="font-semibold text-slate-800 mb-2">{transport.method}</h4>
+                          <div className="text-sm space-y-1">
+                            <div>
+                              Cost: <span className="font-semibold text-emerald-600">{transport.cost}</span>
+                            </div>
+                            <div className="text-slate-600">{transport.tips}</div>
+                          </div>
                         </div>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+            </TabsContent>
 
-                {/* Local Tips */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Lightbulb className="h-5 w-5 mr-2 text-yellow-600" />
-                      Local Tips & Advice
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {tripPlan.localTips.map((tip, idx) => (
-                        <div key={idx} className="flex items-start space-x-3 bg-yellow-50 p-3 rounded-lg">
-                          <span className="text-yellow-600 font-bold text-sm">{idx + 1}</span>
-                          <p className="text-sm">{tip}</p>
-                        </div>
+            <TabsContent value="budget" className="mt-6">
+              <Card className="bg-white shadow-lg border-0 rounded-2xl">
+                <CardHeader className="p-6">
+                  <CardTitle className="text-xl font-bold text-slate-800">Budget Breakdown</CardTitle>
+                  <CardDescription className="text-slate-600">
+                    Daily Average: {tripPlan.budgetBreakdown.dailyAverage}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <div className="p-4 bg-blue-50 rounded-xl text-center">
+                      <Hotel className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.accommodation}</div>
+                      <div className="text-sm text-slate-600">Accommodation</div>
+                    </div>
+                    <div className="p-4 bg-emerald-50 rounded-xl text-center">
+                      <Plane className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.transportation}</div>
+                      <div className="text-sm text-slate-600">Transportation</div>
+                    </div>
+                    <div className="p-4 bg-orange-50 rounded-xl text-center">
+                      <Utensils className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.food}</div>
+                      <div className="text-sm text-slate-600">Food</div>
+                    </div>
+                    <div className="p-4 bg-purple-50 rounded-xl text-center">
+                      <MapPin className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.activities}</div>
+                      <div className="text-sm text-slate-600">Activities</div>
+                    </div>
+                    <div className="p-4 bg-rose-50 rounded-xl text-center">
+                      <ShoppingBag className="h-8 w-8 text-rose-600 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.shopping}</div>
+                      <div className="text-sm text-slate-600">Shopping</div>
+                    </div>
+                    <div className="p-4 bg-slate-100 rounded-xl text-center">
+                      <DollarSign className="h-8 w-8 text-slate-600 mx-auto mb-2" />
+                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.miscellaneous}</div>
+                      <div className="text-sm text-slate-600">Miscellaneous</div>
+                    </div>
+                  </div>
+
+                  <div className="p-6 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl text-center">
+                    <div className="text-3xl font-bold text-slate-800 mb-2">{tripPlan.budgetBreakdown.total}</div>
+                    <div className="text-lg text-slate-600">Total Estimated Cost</div>
+                  </div>
+
+                  <div className="mt-6">
+                    <h4 className="font-semibold text-slate-800 mb-3">Money-Saving Tips</h4>
+                    <ul className="space-y-2">
+                      {tripPlan.budgetBreakdown.budgetTips.map((tip, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          {tip}
+                        </li>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                {/* Weather Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Cloud className="h-5 w-5 mr-2 text-blue-600" />
-                      Weather Information
-                    </CardTitle>
+            <TabsContent value="packing" className="mt-6">
+              <Card className="bg-white shadow-lg border-0 rounded-2xl">
+                <CardHeader className="p-6">
+                  <CardTitle className="text-xl font-bold text-slate-800">Packing Checklist</CardTitle>
+                  <CardDescription className="text-slate-600">Essential items for your trip</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 pt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(tripPlan.packingList).map(([category, items]) => (
+                      <div key={category} className="space-y-3">
+                        <h4 className="font-semibold text-slate-800 capitalize border-b border-slate-200 pb-2">
+                          {category.replace(/([A-Z])/g, " $1").trim()}
+                        </h4>
+                        <ul className="space-y-2">
+                          {items.map((item, index) => (
+                            <li key={index} className="flex items-center gap-2 text-sm text-slate-600">
+                              <div className="w-4 h-4 border border-slate-300 rounded flex-shrink-0"></div>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tips" className="mt-6">
+              <div className="space-y-6">
+                <Card className="bg-white shadow-lg border-0 rounded-2xl">
+                  <CardHeader className="p-6">
+                    <CardTitle className="text-xl font-bold text-slate-800">Important Travel Tips</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <h5 className="font-medium mb-1">Current Season</h5>
-                        <p className="text-sm">{tripPlan.weatherInfo.currentSeason}</p>
-                      </div>
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <h5 className="font-medium mb-1">What to Pack</h5>
-                        <p className="text-sm">{tripPlan.weatherInfo.whatToPack}</p>
-                      </div>
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <h5 className="font-medium mb-1">Best Time to Visit</h5>
-                        <p className="text-sm">{tripPlan.weatherInfo.bestTimeToVisit}</p>
-                      </div>
-                    </div>
+                  <CardContent className="p-6 pt-0">
+                    <ul className="space-y-3">
+                      {tripPlan.importantTips.map((tip, index) => (
+                        <li key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl">
+                          <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-slate-700">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </CardContent>
                 </Card>
 
-                {/* Emergency Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <AlertTriangle className="h-5 w-5 mr-2 text-red-600" />
+                <Card className="bg-white shadow-lg border-0 rounded-2xl">
+                  <CardHeader className="p-6">
+                    <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
                       Emergency Information
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-red-50 p-3 rounded-lg">
-                        <h5 className="font-medium mb-1">Police</h5>
-                        <p className="text-sm font-mono">{tripPlan.emergencyInfo.localPolice}</p>
+                  <CardContent className="p-6 pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-semibold text-slate-800 mb-2">Emergency Contacts</h4>
+                          <div className="text-sm space-y-1">
+                            <div>
+                              Local Emergency:{" "}
+                              <span className="font-semibold text-red-600">
+                                {tripPlan.emergencyInfo.localEmergency}
+                              </span>
+                            </div>
+                            <div>
+                              Hospital: <span className="font-semibold">{tripPlan.emergencyInfo.nearestHospital}</span>
+                            </div>
+                            <div>
+                              Embassy: <span className="font-semibold">{tripPlan.emergencyInfo.embassy}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-800 mb-2">Important Contacts</h4>
+                          <ul className="text-sm space-y-1">
+                            {tripPlan.emergencyInfo.importantContacts.map((contact, index) => (
+                              <li key={index}>• {contact}</li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
-                      <div className="bg-red-50 p-3 rounded-lg">
-                        <h5 className="font-medium mb-1">Tourist Helpline</h5>
-                        <p className="text-sm font-mono">{tripPlan.emergencyInfo.touristHelpline}</p>
-                      </div>
-                    </div>
-                    <div className="mt-3 bg-red-50 p-3 rounded-lg">
-                      <h5 className="font-medium mb-1">Hospitals</h5>
-                      <div className="text-sm">
-                        {tripPlan.emergencyInfo.hospitals.map((hospital, idx) => (
-                          <p key={idx}>{hospital}</p>
-                        ))}
+                      <div>
+                        <h4 className="font-semibold text-slate-800 mb-2">Safety Tips</h4>
+                        <ul className="text-sm space-y-2">
+                          {tripPlan.emergencyInfo.safetyTips.map((tip, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <AlertTriangle className="h-3 w-3 text-orange-600 mt-1 flex-shrink-0" />
+                              {tip}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
+
+                {tripPlan.bookingChecklist && (
+                  <Card className="bg-white shadow-lg border-0 rounded-2xl">
+                    <CardHeader className="p-6">
+                      <CardTitle className="text-xl font-bold text-slate-800">Booking Checklist</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-0">
+                      <div className="space-y-3">
+                        {tripPlan.bookingChecklist.map((item, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <div className="flex items-center gap-3">
+                              <div className="w-5 h-5 border border-slate-300 rounded flex-shrink-0"></div>
+                              <span className="text-sm font-medium text-slate-800">{item.item}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  item.priority === "High"
+                                    ? "destructive"
+                                    : item.priority === "Medium"
+                                      ? "default"
+                                      : "secondary"
+                                }
+                              >
+                                {item.priority}
+                              </Badge>
+                              <span className="text-xs text-slate-600">{item.deadline}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </TabsContent>
           </Tabs>
