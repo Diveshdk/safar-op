@@ -8,429 +8,279 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Search query is required" }, { status: 400 })
     }
 
-    const geminiApiKey = process.env.GEMINI_API_KEY
-    if (!geminiApiKey) {
-      return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 })
-    }
-
-    // Enhanced Gemini prompt for comprehensive place information
-    const prompt = `You are an expert travel guide and researcher. Provide comprehensive, accurate information about "${query}" as a travel destination.
+    // Enhanced Gemini prompt for place exploration
+    const prompt = `You are an expert travel guide. Provide comprehensive information about "${query}" as a travel destination.
 
 Create detailed travel information in JSON format with these sections:
 
 {
-  "name": "${query}",
-  "country": "Country name",
-  "region": "State/Province/Region",
-  "bestTimeToVisit": "Best months to visit",
-  "description": "Engaging 2-3 sentence description of the destination",
-  "history": "Brief historical background (2-3 sentences)",
-  "culture": "Cultural highlights and traditions (2-3 sentences)",
-  "language": {
-    "primary": ["Primary languages spoken"],
-    "phrases": [
-      "Hello - Local translation",
-      "Thank you - Local translation", 
-      "How much? - Local translation",
-      "Where is? - Local translation",
-      "Excuse me - Local translation"
-    ]
+  "destination": {
+    "name": "${query}",
+    "description": "Detailed description of the place",
+    "highlights": ["Top attraction 1", "Top attraction 2", "Top attraction 3"],
+    "bestTimeToVisit": "Best months to visit with weather info",
+    "duration": "Recommended stay duration",
+    "difficulty": "Easy/Moderate/Challenging",
+    "category": "Beach/Mountain/City/Heritage/Adventure"
   },
-  "notablePlaces": [
+  "attractions": [
     {
-      "name": "Specific landmark/attraction name",
-      "description": "What makes this place special and worth visiting"
-    },
-    {
-      "name": "Another specific place",
-      "description": "Detailed description"
-    },
-    {
-      "name": "Third notable place",
-      "description": "Why visitors should go here"
-    },
-    {
-      "name": "Fourth attraction",
-      "description": "What to expect and see"
-    },
-    {
-      "name": "Fifth must-visit spot",
-      "description": "Unique features and experiences"
+      "name": "Specific attraction name",
+      "description": "Detailed description",
+      "location": "Exact location/address",
+      "entryFee": "₹XXX or Free",
+      "timings": "Opening hours",
+      "bestTimeToVisit": "Best time of day",
+      "tips": "Practical tips for visiting"
     }
   ],
-  "activities": [
+  "accommodation": [
     {
-      "name": "Specific activity name",
-      "description": "What the activity involves and why it's recommended"
-    },
-    {
-      "name": "Adventure activity",
-      "description": "Details about the experience"
-    },
-    {
-      "name": "Cultural activity",
-      "description": "Cultural significance and what to expect"
-    },
-    {
-      "name": "Nature activity",
-      "description": "Natural attractions and outdoor experiences"
-    },
-    {
-      "name": "Local experience",
-      "description": "Authentic local activities"
+      "name": "Specific hotel/resort name",
+      "type": "Hotel/Resort/Hostel/Homestay",
+      "location": "Area/address",
+      "priceRange": "₹XXX - ₹XXX per night",
+      "amenities": ["WiFi", "Pool", "Restaurant"],
+      "rating": "4.5/5",
+      "bookingTips": "When and how to book"
     }
   ],
   "food": [
     {
-      "name": "Famous local dish",
-      "description": "What it is, ingredients, and where to find the best version"
-    },
-    {
-      "name": "Traditional specialty",
-      "description": "Cultural significance and taste profile"
-    },
-    {
-      "name": "Street food favorite",
-      "description": "Popular street food and where to try it"
-    },
-    {
-      "name": "Regional delicacy",
-      "description": "Unique to this region and must-try"
-    },
-    {
-      "name": "Sweet/dessert",
-      "description": "Traditional sweet or dessert specialty"
-    }
-  ],
-  "hotels": [
-    {
-      "name": "Luxury hotel name",
-      "type": "Luxury",
-      "priceRange": "₹8,000-15,000/night",
-      "description": "Premium amenities and location details"
-    },
-    {
-      "name": "Mid-range hotel name", 
-      "type": "Mid-Range",
-      "priceRange": "₹3,000-6,000/night",
-      "description": "Good value accommodation with decent amenities"
-    },
-    {
-      "name": "Budget option name",
-      "type": "Budget", 
-      "priceRange": "₹1,500-2,500/night",
-      "description": "Clean, basic accommodation for budget travelers"
-    },
-    {
-      "name": "Hostel/backpacker option",
-      "type": "Budget",
-      "priceRange": "₹800-1,500/night", 
-      "description": "Backpacker-friendly with shared facilities"
+      "dish": "Local specialty dish name",
+      "description": "What it is and taste",
+      "restaurant": "Specific restaurant name",
+      "location": "Restaurant location",
+      "price": "₹XXX",
+      "tips": "When to eat, how to order"
     }
   ],
   "transportation": {
-    "howToReach": "Detailed information about flights, trains, buses to reach the destination",
-    "localTransport": "Local transportation options like buses, taxis, auto-rickshaws, metro",
-    "distance": "Distance from major cities or current location if provided"
+    "howToReach": {
+      "byAir": "Nearest airport and flight info",
+      "byTrain": "Nearest railway station and train info",
+      "byRoad": "Bus/car routes and distances",
+      "cost": "₹XXX - ₹XXX"
+    },
+    "localTransport": [
+      {
+        "method": "Auto/Bus/Taxi/Walking",
+        "cost": "₹XXX per day",
+        "tips": "How to use, where to find"
+      }
+    ]
   },
-  "dailyExpenses": {
-    "budget": {
-      "accommodation": "₹1,500-2,500",
-      "food": "₹800-1,200", 
-      "transport": "₹300-500",
-      "activities": "₹500-800",
-      "total": "₹3,100-5,000"
-    },
-    "midRange": {
-      "accommodation": "₹3,000-6,000",
-      "food": "₹1,500-2,500",
-      "transport": "₹500-800", 
-      "activities": "₹1,000-1,500",
-      "total": "₹6,000-10,800"
-    },
-    "luxury": {
-      "accommodation": "₹8,000-15,000",
-      "food": "₹3,000-5,000",
-      "transport": "₹1,000-2,000",
-      "activities": "₹2,000-3,000", 
-      "total": "₹14,000-25,000"
+  "activities": [
+    {
+      "name": "Specific activity name",
+      "description": "What you'll do",
+      "duration": "X hours",
+      "cost": "₹XXX",
+      "difficulty": "Easy/Moderate/Hard",
+      "bestTime": "Morning/Afternoon/Evening",
+      "tips": "What to bring, how to prepare"
+    }
+  ],
+  "budget": {
+    "budget": "₹XXX - ₹XXX per day",
+    "midRange": "₹XXX - ₹XXX per day",
+    "luxury": "₹XXX - ₹XXX per day",
+    "breakdown": {
+      "accommodation": "₹XXX",
+      "food": "₹XXX",
+      "transport": "₹XXX",
+      "activities": "₹XXX"
     }
   },
-  "weather": {
-    "current": "Current season description",
-    "temperature": "Temperature range",
-    "rainfall": "Rainfall information",
-    "clothing": "What type of clothes to pack"
+  "packingList": {
+    "essentials": ["Item 1", "Item 2"],
+    "clothing": ["Weather appropriate items"],
+    "gear": ["Activity specific gear"],
+    "documents": ["Required documents"]
   },
-  "funFacts": [
-    "Interesting fact about the destination",
-    "Another fascinating detail",
-    "Historical or cultural trivia",
-    "Unique feature or record",
-    "Surprising information about the place"
-  ],
   "tips": [
-    "Practical travel tip specific to this destination",
-    "Money-saving advice",
+    "Local custom tip",
+    "Money/bargaining tip",
+    "Safety tip",
     "Cultural etiquette tip",
-    "Safety or health advice", 
-    "Best time to visit attractions tip",
-    "Local customs to be aware of",
-    "Photography or shopping advice"
-  ]
-}
+    "Photography tip"
+  ],
+  "weather": {
+    "current": "Current season weather",
+    "yearRound": "Weather throughout the year",
+    "whatToPack": "Weather-specific packing advice"
+  },
+  "safety": {
+    "general": ["General safety tip 1", "General safety tip 2"],
+    "emergency": "Emergency contact numbers",
+    "health": "Health precautions if any"
+  }
+}`
 
-Make sure all information is accurate, specific, and helpful for travelers. Use real place names, actual hotel chains where possible, and authentic local dishes. Provide practical, actionable advice.`
+    // Call Gemini API
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192,
+          },
+        }),
+      },
+    )
+
+    if (!geminiResponse.ok) {
+      throw new Error(`Gemini API error: ${geminiResponse.status}`)
+    }
+
+    const geminiData = await geminiResponse.json()
+    let placeInfo
 
     try {
-      // Call Gemini API
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: prompt,
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 8192,
-            },
-          }),
-        },
-      )
+      // Extract JSON from Gemini response
+      const responseText = geminiData.candidates[0].content.parts[0].text
+      console.log("Gemini place search response:", responseText)
 
-      if (!geminiResponse.ok) {
-        throw new Error(`Gemini API error: ${geminiResponse.status}`)
+      // Try to extract JSON from the response
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        placeInfo = JSON.parse(jsonMatch[0])
+      } else {
+        throw new Error("No JSON found in response")
       }
-
-      const geminiData = await geminiResponse.json()
-      let placeInfo
-
-      try {
-        // Extract JSON from Gemini response
-        const responseText = geminiData.candidates[0].content.parts[0].text
-        console.log("Gemini place search response:", responseText)
-
-        // Try to extract JSON from the response
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          placeInfo = JSON.parse(jsonMatch[0])
-        } else {
-          throw new Error("No JSON found in response")
-        }
-      } catch (parseError) {
-        console.error("JSON parsing error:", parseError)
-        // Fallback place information
-        placeInfo = {
+    } catch (parseError) {
+      console.error("JSON parsing error:", parseError)
+      // Fallback place info
+      placeInfo = {
+        destination: {
           name: query,
-          country: "India",
-          region: "Unknown Region",
+          description: `${query} is a beautiful destination with rich culture and stunning attractions.`,
+          highlights: ["Local attractions", "Cultural experiences", "Natural beauty"],
           bestTimeToVisit: "October to March",
-          description: `${query} is a fascinating destination with rich culture, beautiful landscapes, and memorable experiences waiting to be discovered.`,
-          history: `${query} has a rich historical heritage that spans centuries, with influences from various dynasties and cultures that have shaped its unique character.`,
-          culture: `The local culture of ${query} is vibrant and diverse, featuring traditional festivals, art forms, and customs that reflect the region's deep-rooted heritage.`,
-          language: {
-            primary: ["Hindi", "English"],
-            phrases: [
-              "Hello - Namaste",
-              "Thank you - Dhanyawad",
-              "How much? - Kitna paisa?",
-              "Where is? - Kahan hai?",
-              "Excuse me - Maaf kijiye",
-            ],
-          },
-          notablePlaces: [
-            {
-              name: `${query} Main Attraction`,
-              description:
-                "The most famous landmark that draws visitors from around the world with its stunning architecture and historical significance.",
-            },
-            {
-              name: `${query} Cultural Center`,
-              description:
-                "A hub of local culture showcasing traditional arts, crafts, and performances that represent the region's heritage.",
-            },
-            {
-              name: `${query} Scenic Viewpoint`,
-              description:
-                "Breathtaking panoramic views of the surrounding landscape, perfect for photography and peaceful contemplation.",
-            },
-            {
-              name: `${query} Heritage Site`,
-              description:
-                "Ancient structures and monuments that tell the story of the region's glorious past and architectural excellence.",
-            },
-            {
-              name: `${query} Local Market`,
-              description:
-                "Bustling marketplace where you can experience local life, shop for souvenirs, and taste authentic street food.",
-            },
-          ],
-          activities: [
-            {
-              name: "Heritage Walking Tour",
-              description:
-                "Explore the historical sites and learn about the rich cultural heritage through guided walks with local experts.",
-            },
-            {
-              name: "Adventure Sports",
-              description:
-                "Thrilling outdoor activities like trekking, rock climbing, or water sports depending on the terrain and location.",
-            },
-            {
-              name: "Cultural Performances",
-              description:
-                "Experience traditional dance, music, and theater performances that showcase the local artistic traditions.",
-            },
-            {
-              name: "Nature Exploration",
-              description:
-                "Discover the natural beauty through wildlife spotting, nature walks, or visits to parks and gardens.",
-            },
-            {
-              name: "Local Craft Workshops",
-              description:
-                "Hands-on experience learning traditional crafts and skills from local artisans and craftspeople.",
-            },
-          ],
-          food: [
-            {
-              name: "Regional Thali",
-              description:
-                "A complete meal featuring various local dishes served on a traditional platter, offering a taste of authentic regional cuisine.",
-            },
-            {
-              name: "Street Food Special",
-              description:
-                "Popular local street food that's beloved by locals and visitors alike, available at food stalls and markets.",
-            },
-            {
-              name: "Traditional Curry",
-              description:
-                "Signature curry dish prepared with local spices and ingredients, representing the authentic flavors of the region.",
-            },
-            {
-              name: "Local Bread",
-              description:
-                "Traditional bread variety that's a staple in the local diet, often served with curries and vegetables.",
-            },
-            {
-              name: "Regional Sweet",
-              description:
-                "Traditional dessert or sweet preparation that's unique to the area and perfect for ending a meal.",
-            },
-          ],
-          hotels: [
-            {
-              name: "Heritage Palace Hotel",
-              type: "Luxury",
-              priceRange: "₹8,000-15,000/night",
-              description:
-                "Luxurious accommodation in a restored heritage property with modern amenities and traditional charm.",
-            },
-            {
-              name: "Comfort Inn & Suites",
-              type: "Mid-Range",
-              priceRange: "₹3,000-6,000/night",
-              description:
-                "Well-appointed rooms with good facilities, centrally located for easy access to major attractions.",
-            },
-            {
-              name: "Budget Traveler Lodge",
-              type: "Budget",
-              priceRange: "₹1,500-2,500/night",
-              description:
-                "Clean and comfortable accommodation with basic amenities, perfect for budget-conscious travelers.",
-            },
-            {
-              name: "Backpacker Hostel",
-              type: "Budget",
-              priceRange: "₹800-1,500/night",
-              description:
-                "Dormitory-style accommodation with shared facilities, ideal for young travelers and backpackers.",
-            },
-          ],
-          transportation: {
-            howToReach: `${query} is well-connected by road, rail, and air. The nearest airport and railway station provide convenient access from major cities.`,
-            localTransport:
-              "Local buses, auto-rickshaws, taxis, and rental vehicles are available for getting around the city and nearby attractions.",
-            distance: currentLocation
-              ? `Approximately 200-500 km from ${currentLocation.name}`
-              : "Distance varies based on your starting location",
-          },
-          dailyExpenses: {
-            budget: {
-              accommodation: "₹1,500-2,500",
-              food: "₹800-1,200",
-              transport: "₹300-500",
-              activities: "₹500-800",
-              total: "₹3,100-5,000",
-            },
-            midRange: {
-              accommodation: "₹3,000-6,000",
-              food: "₹1,500-2,500",
-              transport: "₹500-800",
-              activities: "₹1,000-1,500",
-              total: "₹6,000-10,800",
-            },
-            luxury: {
-              accommodation: "₹8,000-15,000",
-              food: "₹3,000-5,000",
-              transport: "₹1,000-2,000",
-              activities: "₹2,000-3,000",
-              total: "₹14,000-25,000",
-            },
-          },
-          weather: {
-            current: "Pleasant weather suitable for travel",
-            temperature: "20°C to 30°C",
-            rainfall: "Moderate rainfall during monsoon season",
-            clothing: "Light cotton clothes, comfortable walking shoes, and a light jacket for evenings",
-          },
-          funFacts: [
-            `${query} is known for its unique cultural blend and historical significance.`,
-            "The region has been featured in several films and documentaries.",
-            "Local festivals here attract visitors from across the country.",
-            "The area is famous for its traditional handicrafts and artisan work.",
-            "Many famous personalities have visited and praised this destination.",
-          ],
-          tips: [
-            "Visit early morning or late afternoon for the best experience and fewer crowds.",
-            "Bargain respectfully at local markets - start at 50% of the quoted price.",
-            "Try local transportation for an authentic experience and to save money.",
-            "Respect local customs and dress modestly when visiting religious sites.",
-            "Keep hydrated and carry sunscreen, especially during summer months.",
-            "Learn a few basic local phrases to connect better with locals.",
-            "Book accommodations in advance during peak tourist season.",
-          ],
-        }
-      }
-
-      return NextResponse.json(placeInfo)
-    } catch (geminiError) {
-      console.error("Gemini API error:", geminiError)
-      return NextResponse.json(
-        {
-          error: "Failed to get place information. Please try again.",
-          details: geminiError instanceof Error ? geminiError.message : "Unknown error",
+          duration: "2-3 days",
+          difficulty: "Easy",
+          category: "General",
         },
-        { status: 500 },
-      )
+        attractions: [
+          {
+            name: `Main attraction in ${query}`,
+            description: "A must-visit landmark with historical significance",
+            location: `${query} city center`,
+            entryFee: "₹50",
+            timings: "9:00 AM - 6:00 PM",
+            bestTimeToVisit: "Morning hours",
+            tips: "Visit early to avoid crowds",
+          },
+        ],
+        accommodation: [
+          {
+            name: `Hotel in ${query}`,
+            type: "Hotel",
+            location: `${query} main area`,
+            priceRange: "₹2,000 - ₹5,000 per night",
+            amenities: ["WiFi", "Restaurant", "AC"],
+            rating: "4.0/5",
+            bookingTips: "Book in advance during peak season",
+          },
+        ],
+        food: [
+          {
+            dish: "Local specialty",
+            description: "Traditional dish with authentic flavors",
+            restaurant: `Popular restaurant in ${query}`,
+            location: `${query} market area`,
+            price: "₹200",
+            tips: "Try during lunch hours",
+          },
+        ],
+        transportation: {
+          howToReach: {
+            byAir: `Nearest airport to ${query}`,
+            byTrain: `Railway connectivity to ${query}`,
+            byRoad: `Bus and car routes to ${query}`,
+            cost: "₹500 - ₹2,000",
+          },
+          localTransport: [
+            {
+              method: "Auto rickshaw",
+              cost: "₹100 per day",
+              tips: "Negotiate fare beforehand",
+            },
+          ],
+        },
+        activities: [
+          {
+            name: "Sightseeing",
+            description: "Explore the main attractions",
+            duration: "4 hours",
+            cost: "₹300",
+            difficulty: "Easy",
+            bestTime: "Morning",
+            tips: "Carry water and comfortable shoes",
+          },
+        ],
+        budget: {
+          budget: "₹1,500 - ₹2,500 per day",
+          midRange: "₹3,000 - ₹5,000 per day",
+          luxury: "₹8,000 - ₹15,000 per day",
+          breakdown: {
+            accommodation: "₹2,000",
+            food: "₹800",
+            transport: "₹500",
+            activities: "₹700",
+          },
+        },
+        packingList: {
+          essentials: ["Comfortable shoes", "Water bottle", "Sunscreen"],
+          clothing: ["Light cotton clothes", "Hat", "Sunglasses"],
+          gear: ["Camera", "Power bank"],
+          documents: ["ID proof", "Travel tickets"],
+        },
+        tips: [
+          "Learn basic local phrases",
+          "Carry cash for small vendors",
+          "Respect local customs",
+          "Stay hydrated",
+          "Keep emergency contacts handy",
+        ],
+        weather: {
+          current: "Pleasant weather for travel",
+          yearRound: "Varies by season",
+          whatToPack: "Light clothes and rain protection",
+        },
+        safety: {
+          general: ["Stay in groups", "Keep valuables safe"],
+          emergency: "Local emergency: 100, 101, 102",
+          health: "Carry basic first aid",
+        },
+      }
     }
+
+    return NextResponse.json(placeInfo)
   } catch (error) {
-    console.error("Error in search place API:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Place search error:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to search place. Please try again.",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }

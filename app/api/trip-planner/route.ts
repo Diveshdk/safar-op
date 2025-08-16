@@ -108,7 +108,7 @@ Format as valid JSON:
     "localTransport": [
       {
         "method": "Metro/Bus/Taxi",
-        "cost": "₹XX/day",
+        "cost": "₹XXX/day",
         "tips": "How to use, where to buy tickets"
       }
     ],
@@ -225,10 +225,10 @@ Format as valid JSON:
           highlights: ["Local cultural experiences", "Must-see attractions", "Authentic cuisine"],
           totalEstimatedCost:
             budget === "Budget"
-              ? `₹${duration * 5000}`
+              ? `₹${duration * 3000}`
               : budget === "Luxury"
-                ? `₹${duration * 25000}`
-                : `₹${duration * 12000}`,
+                ? `₹${duration * 15000}`
+                : `₹${duration * 7500}`,
           bestTimeToVisit: "Great time to visit with pleasant weather",
         },
         dailyItinerary: Array.from({ length: duration }, (_, i) => ({
@@ -246,7 +246,7 @@ Format as valid JSON:
               activity: "Morning exploration",
               location: `${destination} city center`,
               duration: "3 hours",
-              cost: "₹2500",
+              cost: "₹1500",
               description: "Explore the main attractions and get oriented with the city",
               tips: "Start early to avoid crowds",
             },
@@ -255,7 +255,7 @@ Format as valid JSON:
               activity: "Afternoon cultural experience",
               location: `Local cultural site in ${destination}`,
               duration: "2 hours",
-              cost: "₹1500",
+              cost: "₹900",
               description: "Immerse in local culture and traditions",
               tips: "Respect local customs and dress appropriately",
             },
@@ -265,7 +265,7 @@ Format as valid JSON:
               type: "Lunch",
               restaurant: "Local favorite restaurant",
               location: `${destination} downtown`,
-              cost: "₹1200",
+              cost: "₹750",
               speciality: "Local specialty dishes",
             },
           ],
@@ -273,7 +273,7 @@ Format as valid JSON:
             hotel: "Recommended hotel",
             location: `${destination} city center`,
             checkIn: "3:00 PM",
-            cost: budget === "Budget" ? "₹2500/night" : budget === "Luxury" ? "₹10000/night" : "₹5000/night",
+            cost: budget === "Budget" ? "₹1500/night" : budget === "Luxury" ? "₹6000/night" : "₹3000/night",
           },
         })),
         accommodationDetails: [
@@ -281,14 +281,14 @@ Format as valid JSON:
             name: "Recommended Hotel",
             type: "Hotel",
             location: `${destination} city center`,
-            pricePerNight: budget === "Budget" ? "₹2500" : budget === "Luxury" ? "₹10000" : "₹5000",
+            pricePerNight: budget === "Budget" ? "₹1500" : budget === "Luxury" ? "₹6000" : "₹3000",
             totalNights: duration - 1,
             totalCost:
               budget === "Budget"
-                ? `₹${(duration - 1) * 2500}`
+                ? `₹${(duration - 1) * 1500}`
                 : budget === "Luxury"
-                  ? `₹${(duration - 1) * 10000}`
-                  : `₹${(duration - 1) * 5000}`,
+                  ? `₹${(duration - 1) * 6000}`
+                  : `₹${(duration - 1) * 3000}`,
             amenities: ["WiFi", "Breakfast", "24/7 Reception"],
             bookingTips: "Book 2-3 weeks in advance for better rates",
             alternatives: ["Budget hostel option", "Luxury resort alternative"],
@@ -298,42 +298,42 @@ Format as valid JSON:
           toDestination: {
             method: "Flight",
             details: `Direct flights available to ${destination}`,
-            cost: "₹20000",
+            cost: "₹12000",
             duration: "3-5 hours",
             bookingTips: "Book 6-8 weeks in advance for best prices",
           },
           localTransport: [
             {
               method: "Public transport",
-              cost: "₹500/day",
+              cost: "₹300/day",
               tips: "Buy daily passes for convenience",
             },
           ],
           fromDestination: {
             method: "Return flight",
-            cost: "₹20000",
+            cost: "₹12000",
             bookingTips: "Book return ticket with arrival for better rates",
           },
         },
         budgetBreakdown: {
           accommodation:
             budget === "Budget"
-              ? `₹${(duration - 1) * 2500}`
+              ? `₹${(duration - 1) * 1500}`
               : budget === "Luxury"
-                ? `₹${(duration - 1) * 10000}`
-                : `₹${(duration - 1) * 5000}`,
-          transportation: "₹40000",
-          food: `₹${duration * 3000}`,
-          activities: `₹${duration * 4000}`,
-          shopping: `₹${duration * 1500}`,
-          miscellaneous: `₹${duration * 1000}`,
+                ? `₹${(duration - 1) * 6000}`
+                : `₹${(duration - 1) * 3000}`,
+          transportation: "₹24000",
+          food: `₹${duration * 1800}`,
+          activities: `₹${duration * 2400}`,
+          shopping: `₹${duration * 900}`,
+          miscellaneous: `₹${duration * 600}`,
           total:
             budget === "Budget"
-              ? `₹${duration * 5000}`
+              ? `₹${duration * 3000}`
               : budget === "Luxury"
-                ? `₹${duration * 25000}`
-                : `₹${duration * 12000}`,
-          dailyAverage: budget === "Budget" ? "₹5000" : budget === "Luxury" ? "₹25000" : "₹12000",
+                ? `₹${duration * 15000}`
+                : `₹${duration * 7500}`,
+          dailyAverage: budget === "Budget" ? "₹3000" : budget === "Luxury" ? "₹15000" : "₹7500",
           budgetTips: ["Use public transport", "Eat at local places", "Book activities in advance"],
         },
         packingList: {
@@ -352,7 +352,7 @@ Format as valid JSON:
           "Download offline maps",
         ],
         emergencyInfo: {
-          localEmergency: "Local emergency services: 100",
+          localEmergency: "Local emergency services: 100, 101, 102",
           nearestHospital: `${destination} General Hospital`,
           embassy: "Contact your embassy if traveling internationally",
           importantContacts: ["Hotel reception", "Local tour guide"],
