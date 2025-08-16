@@ -26,7 +26,12 @@ export async function POST(request: NextRequest) {
     console.log("Hotels API: Searching for hotels in city:", city)
 
     // Try to get hotels from database first
-    const { data: hotels, error } = await supabase.from("hotels").select("*").eq("city", city).limit(10)
+    const { data: hotels, error } = await supabase
+      .from("hotels")
+      .select("*")
+      .ilike("city", `%${city}%`)
+      .order("created_at", { ascending: false })
+      .limit(20)
 
     if (error) {
       console.error("Hotels API: Database error:", error)
@@ -35,43 +40,50 @@ export async function POST(request: NextRequest) {
       console.log("Hotels API: Database query successful, found hotels:", hotels?.length || 0)
     }
 
-    // If no hotels found in database, return demo data
-    if (!hotels || hotels.length === 0) {
-      console.log("Hotels API: No hotels found in database, returning demo data")
-
-      const demoHotels = [
-        {
-          id: "demo1",
-          name: "Sunset Paradise Resort",
-          price: 5500,
-          city: city,
-          description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
-          image_url: "/placeholder.svg?height=240&width=400",
-        },
-        {
-          id: "demo2",
-          name: "City Center Hotel",
-          price: 8500,
-          city: city,
-          description: "Modern amenities • Business center • Gym • Restaurant",
-          image_url: "/placeholder.svg?height=240&width=400",
-        },
-        {
-          id: "demo3",
-          name: "Heritage Palace",
-          price: 12000,
-          city: city,
-          description: "Luxury suites • Spa services • Fine dining • Heritage architecture",
-          image_url: "/placeholder.svg?height=240&width=400",
-        },
-      ]
-
-      console.log("Hotels API: Returning demo hotels:", demoHotels.length)
-      return NextResponse.json({ hotels: demoHotels })
+    // If hotels found in database, return them
+    if (hotels && hotels.length > 0) {
+      console.log("Hotels API: Returning database hotels:", hotels.length)
+      return NextResponse.json({ hotels })
     }
 
-    console.log("Hotels API: Returning database hotels:", hotels.length)
-    return NextResponse.json({ hotels })
+    // If no hotels found in database, return demo data
+    console.log("Hotels API: No hotels found in database, returning demo data")
+
+    const demoHotels = [
+      {
+        id: "demo1",
+        name: "Sunset Paradise Resort",
+        price: 5500,
+        city: city,
+        description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
+        image_url: "/placeholder.svg?height=240&width=400",
+        rating: 4.2,
+        amenities: ["WiFi", "Pool", "Breakfast", "Beach Access"],
+      },
+      {
+        id: "demo2",
+        name: "City Center Hotel",
+        price: 8500,
+        city: city,
+        description: "Modern amenities • Business center • Gym • Restaurant",
+        image_url: "/placeholder.svg?height=240&width=400",
+        rating: 4.5,
+        amenities: ["WiFi", "Gym", "Restaurant", "Business Center"],
+      },
+      {
+        id: "demo3",
+        name: "Heritage Palace",
+        price: 12000,
+        city: city,
+        description: "Luxury suites • Spa services • Fine dining • Heritage architecture",
+        image_url: "/placeholder.svg?height=240&width=400",
+        rating: 4.8,
+        amenities: ["WiFi", "Spa", "Fine Dining", "Heritage"],
+      },
+    ]
+
+    console.log("Hotels API: Returning demo hotels:", demoHotels.length)
+    return NextResponse.json({ hotels: demoHotels })
   } catch (error) {
     console.error("Hotels API: Unexpected error:", error)
     return NextResponse.json(

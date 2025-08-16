@@ -52,12 +52,13 @@ export async function POST(request: NextRequest) {
       address: address?.trim() || null,
       latitude: latitude || null,
       longitude: longitude || null,
-      price_per_night: Number.parseInt(price_per_night),
-      image_url: image_url?.trim() || null,
-      amenities: amenities || [],
-      rating: 0,
+      price: Number.parseInt(price_per_night), // Use 'price' field to match existing schema
+      image_url: image_url?.trim() || "/placeholder.svg?height=240&width=400",
+      amenities: Array.isArray(amenities) ? amenities : [],
+      rating: 4.0,
       total_rooms: Number.parseInt(total_rooms) || 1,
       available_rooms: Number.parseInt(total_rooms) || 1,
+      created_at: new Date().toISOString(),
     }
 
     console.log("Add Hotel API: Prepared hotel data:", hotelData)

@@ -79,9 +79,10 @@ export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
       })
 
       const result = await response.json()
+      console.log("Add hotel response:", result)
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to add hotel")
+        throw new Error(result.error || `HTTP error! status: ${response.status}`)
       }
 
       console.log("Hotel added successfully:", result)
