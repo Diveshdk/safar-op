@@ -1,11 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
 export async function POST(request: NextRequest) {
   try {
     const { city, showAll, userId } = await request.json()
+
+    console.log("Fetching posts with params:", { city, showAll, userId })
 
     let query = supabase.from("user_posts").select("*").order("created_at", { ascending: false }).limit(20)
 
@@ -18,8 +25,10 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Error fetching posts:", error)
-      return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 })
+      return NextResponse.json({ error: "Failed to fetch posts", details: error.message }, { status: 500 })
     }
+
+    console.log(`Found ${posts?.length || 0} posts`)
 
     // Check which posts the user has liked
     if (userId && posts && posts.length > 0) {
@@ -40,6 +49,8 @@ export async function POST(request: NextRequest) {
         }))
 
         return NextResponse.json({ posts: postsWithLikeStatus })
+      } else if (likesError) {
+        console.error("Error fetching likes:", likesError)
       }
     }
 
@@ -53,6 +64,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ posts: postsWithLikeStatus })
   } catch (error) {
     console.error("Error in posts API:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Internal server error", details: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    )
   }
 }
