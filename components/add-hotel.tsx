@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useUser } from "@clerk/nextjs"
 import { Plus, Hotel, Loader2, MapPin, DollarSign, ImageIcon, Users } from "lucide-react"
@@ -88,7 +87,6 @@ export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
       console.log("Hotel added successfully:", result)
       toast.success("Hotel added successfully!")
 
-      // Reset form
       setFormData({
         name: "",
         description: "",
@@ -142,7 +140,6 @@ export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
           <div className="space-y-4">
             <div>
               <Label htmlFor="name" className="text-sm font-medium">
@@ -174,7 +171,6 @@ export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
             </div>
           </div>
 
-          {/* Location Information */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -207,7 +203,6 @@ export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
             </div>
           </div>
 
-          {/* Pricing and Rooms */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -245,7 +240,6 @@ export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
             </div>
           </div>
 
-          {/* Additional Information */}
           <div className="space-y-4">
             <div>
               <Label htmlFor="image" className="text-sm font-medium flex items-center">
@@ -276,7 +270,6 @@ export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
             </div>
           </div>
 
-          {/* Current Location Info */}
           {currentLocation && (
             <div className="bg-blue-50 p-3 rounded-lg">
               <p className="text-sm text-blue-700">
@@ -286,7 +279,6 @@ export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
             </div>
           )}
 
-          {/* Submit Button */}
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
               Cancel

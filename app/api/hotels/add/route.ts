@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
       rating: 4.0,
       total_rooms: Number.parseInt(total_rooms) || 1,
       available_rooms: Number.parseInt(total_rooms) || 1,
-      created_at: new Date().toISOString(),
     }
 
     console.log("Add Hotel API: Prepared hotel data:", hotelData)

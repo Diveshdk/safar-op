@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
         image_url: "/placeholder.svg?height=240&width=400",
         rating: 4.2,
         amenities: ["WiFi", "Pool", "Breakfast", "Beach Access"],
+        total_rooms: 50,
+        available_rooms: 25,
       },
       {
         id: "demo2",
@@ -64,6 +66,8 @@ export async function POST(request: NextRequest) {
         image_url: "/placeholder.svg?height=240&width=400",
         rating: 4.5,
         amenities: ["WiFi", "Gym", "Restaurant", "Business Center"],
+        total_rooms: 75,
+        available_rooms: 30,
       },
       {
         id: "demo3",
@@ -74,6 +78,8 @@ export async function POST(request: NextRequest) {
         image_url: "/placeholder.svg?height=240&width=400",
         rating: 4.8,
         amenities: ["WiFi", "Spa", "Fine Dining", "Heritage"],
+        total_rooms: 100,
+        available_rooms: 40,
       },
     ]
 
