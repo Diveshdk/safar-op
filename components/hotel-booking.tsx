@@ -1,7 +1,8 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect } from "react"
-import { MapPin, Star, Wifi, Car, Utensils, Dumbbell, Users, RefreshCw } from "lucide-react"
+import { MapPin, Star, Wifi, Car, Utensils, Dumbbell, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,15 +11,16 @@ import { toast } from "sonner"
 import AddHotel from "./add-hotel"
 
 interface Hotel {
-  id: string
+  id: number
   name: string
   description: string
   city: string
   address?: string
   price: number
-  image_url: string
+  image_url?: string
   amenities: string[]
   rating: number
+  total_rooms: number
   available_rooms: number
 }
 
@@ -26,61 +28,67 @@ interface Props {
   currentLocation: { lat: number; lng: number; name: string; city: string } | null
 }
 
+const amenityIcons: Record<string, React.ReactNode> = {
+  WiFi: <Wifi className="h-4 w-4" />,
+  "Valet Parking": <Car className="h-4 w-4" />,
+  Parking: <Car className="h-4 w-4" />,
+  Restaurant: <Utensils className="h-4 w-4" />,
+  Gym: <Dumbbell className="h-4 w-4" />,
+}
+
 export default function HotelBooking({ currentLocation }: Props) {
   const [hotels, setHotels] = useState<Hotel[]>([])
   const [loading, setLoading] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchHotels = async () => {
-    if (!currentLocation) return
+    if (!currentLocation?.city) {
+      setError("Please set your location first")
+      return
+    }
 
     try {
       setLoading(true)
-      console.log("Fetching hotels for:", currentLocation.city)
+      setError(null)
+      console.log("Fetching hotels for city:", currentLocation.city)
 
       const response = await fetch(`/api/hotels?city=${encodeURIComponent(currentLocation.city)}`)
       const data = await response.json()
 
-      console.log("Hotels response:", data)
+      console.log("Hotels API response:", data)
 
-      if (data.success) {
-        setHotels(data.hotels || [])
-        if (data.hotels?.length > 0) {
-          toast.success(`Found ${data.hotels.length} hotels in ${currentLocation.city}`)
-        }
-      } else {
-        throw new Error(data.error || "Failed to fetch hotels")
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP error! status: ${response.status}`)
+      }
+
+      setHotels(data.hotels || [])
+
+      if (data.message) {
+        console.log("Hotels API message:", data.message)
       }
     } catch (error) {
       console.error("Error fetching hotels:", error)
+      setError(error instanceof Error ? error.message : "Failed to load hotels")
       toast.error("Failed to load hotels")
-      setHotels([])
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchHotels()
-  }, [currentLocation, refreshKey])
-
-  const handleHotelAdded = () => {
-    console.log("Hotel added, refreshing list...")
-    setRefreshKey((prev) => prev + 1)
-    toast.success("Hotel list refreshed!")
-  }
+    if (currentLocation?.city) {
+      fetchHotels()
+    }
+  }, [currentLocation?.city])
 
   const handleRefresh = () => {
-    setRefreshKey((prev) => prev + 1)
+    fetchHotels()
   }
 
-  const getAmenityIcon = (amenity: string) => {
-    const amenityLower = amenity.toLowerCase()
-    if (amenityLower.includes("wifi")) return <Wifi className="h-3 w-3" />
-    if (amenityLower.includes("parking") || amenityLower.includes("car")) return <Car className="h-3 w-3" />
-    if (amenityLower.includes("restaurant") || amenityLower.includes("food")) return <Utensils className="h-3 w-3" />
-    if (amenityLower.includes("gym") || amenityLower.includes("fitness")) return <Dumbbell className="h-3 w-3" />
-    return <Users className="h-3 w-3" />
+  const handleHotelAdded = () => {
+    // Refresh the hotels list when a new hotel is added
+    fetchHotels()
+    toast.success("Hotel list refreshed!")
   }
 
   if (!currentLocation) {
@@ -88,7 +96,7 @@ export default function HotelBooking({ currentLocation }: Props) {
       <Card>
         <CardContent className="p-6 text-center">
           <MapPin className="h-10 w-10 mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-600">Set your location to find hotels</p>
+          <p className="text-gray-600 mb-4">Please set your location to view hotels</p>
         </CardContent>
       </Card>
     )
@@ -96,86 +104,93 @@ export default function HotelBooking({ currentLocation }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Header with Add Hotel and Refresh */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <h2 className="text-xl font-semibold mb-2">Hotels in {currentLocation.city}</h2>
-          <p className="text-gray-600 text-sm">Find and book the perfect accommodation</p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Hotels in {currentLocation.city}</h2>
+          <p className="text-gray-600">Find the perfect place to stay</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-            className="flex items-center gap-2 bg-transparent"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-          <div className="min-w-[140px]">
-            <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
-          </div>
-        </div>
+        <Button onClick={handleRefresh} disabled={loading} variant="outline" size="sm">
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
-      {/* Hotels List */}
-      {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Add Hotel Button */}
+      <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
+
+      {/* Error State */}
+      {error && (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={handleRefresh} variant="outline">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardHeader>
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-48 w-full rounded-lg" />
               </CardHeader>
-              <CardContent>
-                <Skeleton className="h-32 w-full mb-4" />
-                <Skeleton className="h-3 w-full mb-2" />
-                <Skeleton className="h-3 w-2/3" />
+              <CardContent className="space-y-3">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      ) : hotels.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      )}
+
+      {/* Hotels Grid */}
+      {!loading && !error && hotels.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {hotels.map((hotel) => (
             <Card key={hotel.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="aspect-video relative">
+              <div className="relative">
                 <img
-                  src={hotel.image_url || "/placeholder.svg"}
+                  src={hotel.image_url || "/placeholder.svg?height=240&width=400"}
                   alt={hotel.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = "/placeholder.svg?height=240&width=400"
-                  }}
+                  className="w-full h-48 object-cover"
                 />
-                <div className="absolute top-2 right-2">
-                  <Badge variant="secondary" className="bg-white/90">
+                <div className="absolute top-4 right-4">
+                  <Badge variant="secondary" className="bg-white/90 text-black">
                     <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
                     {hotel.rating}
                   </Badge>
                 </div>
               </div>
 
-              <CardHeader className="pb-2">
+              <CardHeader>
                 <CardTitle className="text-lg">{hotel.name}</CardTitle>
-                <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {hotel.address || hotel.city}
-                </div>
+                <p className="text-sm text-gray-600 line-clamp-2">{hotel.description}</p>
+                {hotel.address && (
+                  <p className="text-xs text-gray-500 flex items-center">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {hotel.address}
+                  </p>
+                )}
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600 line-clamp-2">{hotel.description}</p>
-
                 {/* Amenities */}
                 {hotel.amenities && hotel.amenities.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-2">
                     {hotel.amenities.slice(0, 4).map((amenity, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
-                        {getAmenityIcon(amenity)}
-                        <span className="ml-1">{amenity}</span>
+                        {amenityIcons[amenity] || <span className="h-3 w-3 mr-1">•</span>}
+                        {amenity}
                       </Badge>
                     ))}
                     {hotel.amenities.length > 4 && (
@@ -186,29 +201,33 @@ export default function HotelBooking({ currentLocation }: Props) {
                   </div>
                 )}
 
-                {/* Price and Booking */}
-                <div className="flex items-center justify-between pt-2 border-t">
+                {/* Availability */}
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium text-green-600">{hotel.available_rooms}</span> rooms available out of{" "}
+                  {hotel.total_rooms}
+                </div>
+
+                {/* Price and Book Button */}
+                <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-lg font-semibold">₹{hotel.price.toLocaleString()}</div>
-                    <div className="text-xs text-gray-500">per night</div>
+                    <span className="text-2xl font-bold text-orange-600">₹{hotel.price.toLocaleString()}</span>
+                    <span className="text-sm text-gray-500">/night</span>
                   </div>
-                  <div className="text-right">
-                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                      Book Now
-                    </Button>
-                    <div className="text-xs text-gray-500 mt-1">{hotel.available_rooms} rooms left</div>
-                  </div>
+                  <Button className="bg-orange-500 hover:bg-orange-600 text-white">Book Now</Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      ) : (
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && hotels.length === 0 && (
         <Card>
-          <CardContent className="p-8 text-center">
-            <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium mb-2">No hotels found</h3>
-            <p className="text-gray-600 mb-4">No hotels available in {currentLocation.city} at the moment.</p>
+          <CardContent className="p-6 text-center">
+            <MapPin className="h-10 w-10 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-600 mb-4">No hotels found in {currentLocation.city}</p>
+            <p className="text-sm text-gray-500 mb-4">Be the first to add a hotel in this area!</p>
             <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
           </CardContent>
         </Card>

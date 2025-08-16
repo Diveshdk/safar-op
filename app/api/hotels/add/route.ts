@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { auth } from "@clerk/nextjs/server"
 
-// Use service role key for server-side operations
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: {
     autoRefreshToken: false,
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
       address: address?.trim() || null,
       latitude: latitude || null,
       longitude: longitude || null,
-      price: Number.parseInt(price_per_night), // Use 'price' field to match existing schema
+      price: Number.parseInt(price_per_night),
       image_url: image_url?.trim() || "/placeholder.svg?height=240&width=400",
       amenities: Array.isArray(amenities) ? amenities : [],
       rating: 4.0,
