@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
   try {
     console.log("Add Hotel API: Starting request processing")
 
-    // Get user authentication
     const { userId } = await auth()
     if (!userId) {
       console.log("Add Hotel API: User not authenticated")
@@ -36,13 +35,11 @@ export async function POST(request: NextRequest) {
       total_rooms,
     } = body
 
-    // Validate required fields
     if (!name || !description || !city || !price_per_night) {
       console.log("Add Hotel API: Missing required fields")
       return NextResponse.json({ error: "Name, description, city, and price per night are required" }, { status: 400 })
     }
 
-    // Prepare hotel data
     const hotelData = {
       owner_id: userId,
       name: name.trim(),
@@ -62,7 +59,6 @@ export async function POST(request: NextRequest) {
 
     console.log("Add Hotel API: Prepared hotel data:", hotelData)
 
-    // Insert hotel into database
     const { data: hotel, error } = await supabase.from("hotels").insert([hotelData]).select().single()
 
     if (error) {
