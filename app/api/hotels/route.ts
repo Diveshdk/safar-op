@@ -1,25 +1,44 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!)
+// Use service role key for server-side operations
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
 export async function POST(request: NextRequest) {
   try {
-    const { city } = await request.json()
+    console.log("Hotels API: Starting request processing")
+
+    const body = await request.json()
+    console.log("Hotels API: Request body:", body)
+
+    const { city } = body
 
     if (!city) {
+      console.log("Hotels API: Missing city parameter")
       return NextResponse.json({ error: "City is required" }, { status: 400 })
     }
+
+    console.log("Hotels API: Searching for hotels in city:", city)
 
     // Try to get hotels from database first
     const { data: hotels, error } = await supabase.from("hotels").select("*").eq("city", city).limit(10)
 
     if (error) {
-      console.error("Error fetching hotels:", error)
+      console.error("Hotels API: Database error:", error)
+      // Continue to fallback data instead of returning error
+    } else {
+      console.log("Hotels API: Database query successful, found hotels:", hotels?.length || 0)
     }
 
     // If no hotels found in database, return demo data
     if (!hotels || hotels.length === 0) {
+      console.log("Hotels API: No hotels found in database, returning demo data")
+
       const demoHotels = [
         {
           id: "demo1",
@@ -47,12 +66,20 @@ export async function POST(request: NextRequest) {
         },
       ]
 
+      console.log("Hotels API: Returning demo hotels:", demoHotels.length)
       return NextResponse.json({ hotels: demoHotels })
     }
 
+    console.log("Hotels API: Returning database hotels:", hotels.length)
     return NextResponse.json({ hotels })
   } catch (error) {
-    console.error("Error in hotels API:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Hotels API: Unexpected error:", error)
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
