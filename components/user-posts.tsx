@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Heart, MessageCircle, MapPin, Clock, Camera } from "lucide-react"
+import { Heart, MessageCircle, MapPin, Clock, Camera, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,6 +11,7 @@ import { toast } from "sonner"
 
 interface UserPostsProps {
   currentLocation: { lat: number; lng: number; name: string; city: string } | null
+  userId: string
   showAll?: boolean
   refreshTrigger?: number
 }
@@ -30,7 +31,7 @@ interface Post {
   liked_by_user: boolean
 }
 
-export default function UserPosts({ currentLocation, showAll = false, refreshTrigger }: UserPostsProps) {
+export default function UserPosts({ currentLocation, userId, showAll = false, refreshTrigger }: UserPostsProps) {
   const { user } = useUser()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
@@ -146,6 +147,7 @@ export default function UserPosts({ currentLocation, showAll = false, refreshTri
           <p className="text-red-600 mb-2 sm:mb-3 font-semibold text-lg sm:text-xl">Error loading posts</p>
           <p className="text-gray-500 text-base sm:text-lg leading-relaxed mb-4">{error}</p>
           <Button onClick={loadPosts} className="bg-slate-600 hover:bg-slate-700">
+            <RefreshCw className="h-4 w-4 mr-2" />
             Try Again
           </Button>
         </CardContent>

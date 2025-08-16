@@ -10,9 +10,9 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, content, city, latitude, longitude, imageUrl, userId, userName, userAvatar } = await request.json()
+    const { title, content, city, lat, lng, userId, userName, userAvatar, imageUrl } = await request.json()
 
-    console.log("Creating post:", { title, content, city, userId, userName })
+    console.log("Creating post with data:", { title, content, city, userId, userName })
 
     if (!title || !content || !city || !userId || !userName) {
       return NextResponse.json(
@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
       user_avatar: userAvatar || null,
       title: title.trim(),
       content: content.trim(),
-      city: city.trim(),
-      latitude: latitude || null,
-      longitude: longitude || null,
+      city: city,
+      lat: lat || null,
+      lng: lng || null,
       image_url: imageUrl || null,
       likes: 0,
       comments: 0,
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase.from("user_posts").insert([postData]).select().single()
 
     if (error) {
-      console.error("Error creating post:", error)
+      console.error("Supabase error creating post:", error)
       return NextResponse.json(
         {
           error: "Failed to create post",

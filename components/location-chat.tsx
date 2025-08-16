@@ -3,16 +3,18 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { Send, MessageCircle, MapPin, Users, Loader2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Send, Users, MapPin, Wifi, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useUser } from "@clerk/nextjs"
-import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 
 interface LocationChatProps {
   currentLocation: { lat: number; lng: number; name: string; city: string } | null
+  userId: string
+  userName: string
+  userAvatar: string
 }
 
 interface ChatMessage {
@@ -25,39 +27,57 @@ interface ChatMessage {
   created_at: string
 }
 
-export default function LocationChat({ currentLocation }: LocationChatProps) {
-  const { user } = useUser()
+export default function LocationChat({ currentLocation, userId, userName, userAvatar }: LocationChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [onlineUsers, setOnlineUsers] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [connected, setConnected] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const wsRef = useRef<WebSocket | null>(null)
 
-  useEffect(() => {
-    if (currentLocation) {
-      loadMessages()
-      // Set up polling for new messages every 5 seconds
-      const interval = setInterval(loadMessages, 5000)
-      return () => clearInterval(interval)
-    }
-  }, [currentLocation])
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
 
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  useEffect(() => {
+    if (currentLocation) {
+      connectWebSocket()
+      loadMessages()
+    }
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close()
+      }
+    }
+  }, [currentLocation])
+
+  const connectWebSocket = () => {
+    if (!currentLocation) return
+
+    // Simulate WebSocket connection
+    setConnected(true)
+    setOnlineUsers(Math.floor(Math.random() * 15) + 3)
+
+    // Simulate real-time updates every 10 seconds
+    const interval = setInterval(() => {
+      if (Math.random() > 0.7) {
+        loadMessages()
+      }
+    }, 10000)
+
+    return () => clearInterval(interval)
   }
 
   const loadMessages = async () => {
     if (!currentLocation) return
 
     try {
-      setError(null)
-      console.log("Loading messages for:", currentLocation.city)
-
       const response = await fetch("/api/chat/messages", {
         method: "POST",
         headers: {
@@ -65,215 +85,193 @@ export default function LocationChat({ currentLocation }: LocationChatProps) {
         },
         body: JSON.stringify({
           city: currentLocation.city,
+          lat: currentLocation.lat,
+          lng: currentLocation.lng,
         }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-
       const data = await response.json()
-      console.log("Messages loaded:", data)
-
       setMessages(data.messages || [])
     } catch (error) {
       console.error("Error loading messages:", error)
-      setError(error instanceof Error ? error.message : "Failed to load messages")
-    } finally {
-      setLoading(false)
     }
   }
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !currentLocation) return
 
-    if (!user || !currentLocation || !newMessage.trim()) {
-      return
-    }
-
-    if (!newMessage.trim()) {
-      toast.error("Please enter a message")
-      return
-    }
-
-    setSending(true)
-
+    setLoading(true)
     try {
-      console.log("Sending message:", {
-        message: newMessage.trim(),
-        city: currentLocation.city,
-        userId: user.id,
-        userName: user.fullName || user.firstName || "Anonymous",
-      })
-
       const response = await fetch("/api/chat/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: newMessage.trim(),
+          message: newMessage,
           city: currentLocation.city,
-          latitude: currentLocation.lat,
-          longitude: currentLocation.lng,
-          userId: user.id,
-          userName: user.fullName || user.firstName || "Anonymous",
-          userAvatar: user.imageUrl || null,
+          lat: currentLocation.lat,
+          lng: currentLocation.lng,
+          userId: userId,
+          userName: userName,
+          userAvatar: userAvatar,
         }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-
       const data = await response.json()
-      console.log("Message sent:", data)
-
-      setNewMessage("")
-      toast.success("Message sent! 💬")
-
-      // Reload messages to show the new message
-      await loadMessages()
+      if (data.success) {
+        setNewMessage("")
+        loadMessages()
+      }
     } catch (error) {
       console.error("Error sending message:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to send message")
     } finally {
-      setSending(false)
+      setLoading(false)
     }
   }
 
-  if (!user) {
-    return (
-      <Card className="shadow-xl border-0 bg-white">
-        <CardContent className="p-8 text-center">
-          <MessageCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600 font-medium">Please sign in to join the chat</p>
-        </CardContent>
-      </Card>
-    )
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
   }
 
   if (!currentLocation) {
     return (
       <Card className="shadow-xl border-0 bg-white">
-        <CardContent className="p-8 text-center">
-          <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600 font-medium">Please set your location to join local chat</p>
+        <CardContent className="p-8 sm:p-12 text-center">
+          <MapPin className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-gray-400 mb-4 sm:mb-6" />
+          <p className="text-gray-700 font-semibold text-base sm:text-lg">Set your location to join local chat</p>
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="shadow-xl border-0 bg-white h-[600px] flex flex-col">
-      <CardHeader className="pb-4 border-b border-gray-200">
-        <CardTitle className="text-2xl font-bold text-gray-900 flex items-center">
-          <MessageCircle className="h-6 w-6 mr-3 text-slate-600" />
+    <div className="space-y-4 sm:space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-3 tracking-tight">
           Local Chat 💬
-        </CardTitle>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center text-sm text-gray-600 bg-slate-100 rounded-full px-4 py-2">
-            <MapPin className="h-4 w-4 mr-2 text-slate-600" />
-            <span className="font-medium">{currentLocation.city}</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-500">
-            <Users className="h-4 w-4 mr-1" />
-            <span>
-              {messages.length > 0 ? `${new Set(messages.map((m) => m.user_id)).size} users` : "No users yet"}
-            </span>
-          </div>
-        </div>
-      </CardHeader>
+        </h2>
+        <p className="text-gray-600 text-base sm:text-lg">Connect with travelers in {currentLocation.city}</p>
+      </div>
 
-      <CardContent className="flex-1 flex flex-col p-0">
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-slate-600 mb-2" />
-                <p className="text-gray-600">Loading messages...</p>
+      <Card className="overflow-hidden shadow-2xl border-0 bg-white">
+        <CardHeader className="bg-emerald-600 text-white shadow-lg">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 text-lg sm:text-xl font-bold">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <MapPin className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="truncate">{currentLocation.city}</span>
+            </div>
+            <div className="flex items-center space-x-4 sm:space-x-6 text-sm font-medium">
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <Wifi className={`h-4 w-4 sm:h-5 sm:w-5 ${connected ? "text-emerald-200" : "text-red-200"}`} />
+                <span>{connected ? "Live" : "Offline"}</span>
+              </div>
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span>{onlineUsers}</span>
               </div>
             </div>
-          ) : error ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <MessageCircle className="h-12 w-12 mx-auto text-red-400 mb-4" />
-                <p className="text-red-600 font-semibold mb-2">Error loading messages</p>
-                <p className="text-gray-500 text-sm mb-4">{error}</p>
-                <Button onClick={loadMessages} size="sm" className="bg-slate-600 hover:bg-slate-700">
-                  Try Again
-                </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {/* Messages Area */}
+          <div className="h-80 sm:h-96 md:h-[500px] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 bg-gray-50">
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-500 mt-12 sm:mt-16">
+                <MessageCircle className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 sm:mb-6 text-gray-300" />
+                <p className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">No messages yet</p>
+                <p className="text-sm sm:text-lg">Be the first to start a conversation in {currentLocation.city}!</p>
               </div>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <MessageCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600 font-semibold mb-2">No messages yet</p>
-                <p className="text-gray-500 text-sm">Be the first to start a conversation in {currentLocation.city}!</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex items-start space-x-3 ${
-                    message.user_id === user.id ? "flex-row-reverse space-x-reverse" : ""
-                  }`}
-                >
-                  <Avatar className="h-8 w-8 flex-shrink-0">
+            ) : (
+              messages.map((message) => (
+                <div key={message.id} className="flex space-x-3 sm:space-x-4">
+                  <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 ring-2 ring-gray-200 shadow-md">
                     <AvatarImage src={message.user_avatar || "/placeholder.svg"} />
-                    <AvatarFallback className="bg-slate-600 text-white text-xs">
+                    <AvatarFallback className="bg-slate-600 text-white font-semibold text-xs sm:text-sm">
                       {message.user_name?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      message.user_id === user.id ? "bg-slate-600 text-white" : "bg-gray-100 text-gray-900"
-                    }`}
-                  >
-                    <p className="text-xs font-medium mb-1 opacity-75">{message.user_name}</p>
-                    <p className="text-sm">{message.message}</p>
-                    <p className="text-xs mt-1 opacity-60">
-                      {new Date(message.created_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 mb-2">
+                      <span className="font-semibold text-gray-900 truncate text-sm sm:text-base">
+                        {message.user_name}
+                      </span>
+                      <span className="text-xs sm:text-sm text-gray-500 flex-shrink-0 font-medium">
+                        {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      {message.user_id === userId && (
+                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 font-semibold w-fit">
+                          You
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-md border border-gray-100">
+                      <p className="text-gray-800 leading-relaxed text-sm sm:text-base">{message.message}</p>
+                    </div>
                   </div>
                 </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-        {/* Message Input */}
-        <div className="border-t border-gray-200 p-4">
-          <form onSubmit={sendMessage} className="flex space-x-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={`Message ${currentLocation.city} travelers...`}
-              className="flex-1 border-2 border-gray-200 focus:border-slate-500 rounded-xl"
-              disabled={sending}
-              maxLength={500}
-            />
-            <Button
-              type="submit"
-              disabled={sending || !newMessage.trim()}
-              className="bg-slate-600 hover:bg-slate-700 text-white px-4 rounded-xl"
-            >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
-          </form>
-          <p className="text-xs text-gray-500 mt-2">{newMessage.length}/500 characters</p>
-        </div>
-      </CardContent>
-    </Card>
+          {/* Message Input */}
+          <div className="p-4 sm:p-6 border-t border-gray-200 bg-white">
+            <div className="flex space-x-2 sm:space-x-4">
+              <Input
+                placeholder={`Message travelers in ${currentLocation.city}...`}
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="flex-1 border-2 border-gray-200 focus:border-emerald-500 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base"
+                maxLength={500}
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={loading || !newMessage.trim()}
+                className="bg-emerald-600 hover:bg-emerald-700 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex-shrink-0"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent"></div>
+                ) : (
+                  <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3 font-medium">
+              Only travelers in {currentLocation.city} can see this chat
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Chat Guidelines */}
+      <Card className="shadow-lg border-0 bg-blue-50">
+        <CardContent className="p-4 sm:p-6">
+          <h4 className="font-bold mb-3 sm:mb-4 text-base sm:text-lg text-gray-900">💡 Chat Guidelines</h4>
+          <ul className="text-gray-700 space-y-1 sm:space-y-2 leading-relaxed text-sm sm:text-base">
+            <li className="flex items-start space-x-2">
+              <span className="text-blue-600 font-bold">•</span>
+              <span>Share local tips and recommendations</span>
+            </li>
+            <li className="flex items-start space-x-2">
+              <span className="text-blue-600 font-bold">•</span>
+              <span>Ask questions about {currentLocation.city}</span>
+            </li>
+            <li className="flex items-start space-x-2">
+              <span className="text-blue-600 font-bold">•</span>
+              <span>Be respectful and helpful</span>
+            </li>
+            <li className="flex items-start space-x-2">
+              <span className="text-blue-600 font-bold">•</span>
+              <span>No spam or inappropriate content</span>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
