@@ -5,6 +5,7 @@ import { Hotel, BedDouble, Loader2, CalendarDays, MapPin } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import AddHotel from "./add-hotel"
 
 interface HotelInfo {
   id: string
@@ -21,8 +22,7 @@ interface Props {
 }
 
 /**
- * Minimal hotel-booking list.
- * Later you can add CRUD endpoints (`/api/hotels`) and payment integration.
+ * Hotel booking component with option to add new hotels
  */
 export default function HotelBooking({ currentLocation, userId }: Props) {
   const [hotels, setHotels] = useState<HotelInfo[]>([])
@@ -54,7 +54,7 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
         {
           id: "demo1",
           name: "Sunset Paradise Resort",
-          price: 5500, // Changed from 79 to realistic INR price
+          price: 5500,
           city: currentLocation!.city,
           description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
           image_url: "/placeholder.svg?height=240&width=400",
@@ -62,7 +62,7 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
         {
           id: "demo2",
           name: "City Center Hotel",
-          price: 8500, // Changed from 120 to realistic INR price
+          price: 8500,
           city: currentLocation!.city,
           description: "Modern amenities • Business center • Gym • Restaurant",
           image_url: "/placeholder.svg?height=240&width=400",
@@ -73,25 +73,36 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
     }
   }
 
+  const handleHotelAdded = () => {
+    // Refresh hotels list when a new hotel is added
+    loadHotels()
+  }
+
   if (!currentLocation) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <MapPin className="h-10 w-10 mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-600">Set location to view available hotels</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <MapPin className="h-10 w-10 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-600 mb-4">Set location to view available hotels</p>
+          </CardContent>
+        </Card>
+        <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
+      </div>
     )
   }
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading hotels in {currentLocation.city}…</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-gray-600">Loading hotels in {currentLocation.city}…</p>
+          </CardContent>
+        </Card>
+        <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
+      </div>
     )
   }
 
@@ -104,6 +115,10 @@ export default function HotelBooking({ currentLocation, userId }: Props) {
         </CardHeader>
       </Card>
 
+      {/* Add Hotel Button */}
+      <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
+
+      {/* Hotels List */}
       {hotels.map((h) => (
         <Card key={h.id} className="overflow-hidden">
           {h.image_url && (
