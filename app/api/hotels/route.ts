@@ -9,89 +9,110 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
   },
 })
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     console.log("Hotels API: Starting request processing")
 
-    const body = await request.json()
-    console.log("Hotels API: Request body:", body)
+    const { searchParams } = new URL(request.url)
+    const city = searchParams.get("city")
 
-    const { city } = body
+    console.log("Hotels API: City parameter:", city)
 
-    if (!city) {
-      console.log("Hotels API: Missing city parameter")
-      return NextResponse.json({ error: "City is required" }, { status: 400 })
+    let query = supabase.from("hotels").select("*")
+
+    if (city) {
+      // Use ilike for case-insensitive partial matching
+      query = query.ilike("city", `%${city}%`)
     }
 
-    console.log("Hotels API: Searching for hotels in city:", city)
-
-    // Try to get hotels from database first
-    const { data: hotels, error } = await supabase
-      .from("hotels")
-      .select("*")
-      .ilike("city", `%${city}%`)
-      .order("created_at", { ascending: false })
-      .limit(20)
+    const { data: hotels, error } = await query.order("created_at", { ascending: false }).limit(20)
 
     if (error) {
       console.error("Hotels API: Database error:", error)
-      // Continue to fallback data instead of returning error
-    } else {
-      console.log("Hotels API: Database query successful, found hotels:", hotels?.length || 0)
+      // Don't fail completely, return demo data instead
     }
 
-    // If hotels found in database, return them
-    if (hotels && hotels.length > 0) {
-      console.log("Hotels API: Returning database hotels:", hotels.length)
-      return NextResponse.json({ hotels })
+    console.log("Hotels API: Found hotels:", hotels?.length || 0)
+
+    // If no hotels found or database error, return demo data
+    if (!hotels || hotels.length === 0) {
+      console.log("Hotels API: Returning demo data")
+      const demoHotels = [
+        {
+          id: "demo-1",
+          name: "Grand Palace Hotel",
+          description: "Luxury hotel in the heart of the city with world-class amenities",
+          city: city || "Mumbai",
+          address: "123 Main Street",
+          price: 5000,
+          image_url: "/placeholder.svg?height=240&width=400",
+          amenities: ["WiFi", "Pool", "Gym", "Restaurant", "Spa"],
+          rating: 4.5,
+          total_rooms: 100,
+          available_rooms: 25,
+        },
+        {
+          id: "demo-2",
+          name: "Comfort Inn",
+          description: "Affordable and comfortable stay with modern facilities",
+          city: city || "Mumbai",
+          address: "456 Park Avenue",
+          price: 2500,
+          image_url: "/placeholder.svg?height=240&width=400",
+          amenities: ["WiFi", "Restaurant", "Parking"],
+          rating: 4.0,
+          total_rooms: 50,
+          available_rooms: 15,
+        },
+        {
+          id: "demo-3",
+          name: "Business Hotel",
+          description: "Perfect for business travelers with meeting facilities",
+          city: city || "Mumbai",
+          address: "789 Business District",
+          price: 3500,
+          image_url: "/placeholder.svg?height=240&width=400",
+          amenities: ["WiFi", "Business Center", "Conference Rooms"],
+          rating: 4.2,
+          total_rooms: 75,
+          available_rooms: 20,
+        },
+      ]
+
+      return NextResponse.json({
+        success: true,
+        hotels: demoHotels,
+        message: "Demo hotels loaded",
+      })
     }
 
-    // If no hotels found in database, return demo data
-    console.log("Hotels API: No hotels found in database, returning demo data")
+    return NextResponse.json({
+      success: true,
+      hotels,
+      message: `Found ${hotels.length} hotels`,
+    })
+  } catch (error) {
+    console.error("Hotels API: Unexpected error:", error)
 
+    // Return demo data as fallback
     const demoHotels = [
       {
-        id: "demo1",
-        name: "Sunset Paradise Resort",
-        price: 5500,
-        city: city,
-        description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
+        id: "demo-1",
+        name: "Grand Palace Hotel",
+        description: "Luxury hotel in the heart of the city",
+        city: "Mumbai",
+        price: 5000,
         image_url: "/placeholder.svg?height=240&width=400",
-        rating: 4.2,
-        amenities: ["WiFi", "Pool", "Breakfast", "Beach Access"],
-      },
-      {
-        id: "demo2",
-        name: "City Center Hotel",
-        price: 8500,
-        city: city,
-        description: "Modern amenities • Business center • Gym • Restaurant",
-        image_url: "/placeholder.svg?height=240&width=400",
+        amenities: ["WiFi", "Pool", "Gym"],
         rating: 4.5,
-        amenities: ["WiFi", "Gym", "Restaurant", "Business Center"],
-      },
-      {
-        id: "demo3",
-        name: "Heritage Palace",
-        price: 12000,
-        city: city,
-        description: "Luxury suites • Spa services • Fine dining • Heritage architecture",
-        image_url: "/placeholder.svg?height=240&width=400",
-        rating: 4.8,
-        amenities: ["WiFi", "Spa", "Fine Dining", "Heritage"],
+        available_rooms: 25,
       },
     ]
 
-    console.log("Hotels API: Returning demo hotels:", demoHotels.length)
-    return NextResponse.json({ hotels: demoHotels })
-  } catch (error) {
-    console.error("Hotels API: Unexpected error:", error)
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({
+      success: true,
+      hotels: demoHotels,
+      message: "Fallback hotels loaded",
+    })
   }
 }

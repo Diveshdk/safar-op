@@ -1,145 +1,218 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Hotel, BedDouble, Loader2, CalendarDays, MapPin } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { MapPin, Star, Wifi, Car, Utensils, Dumbbell, Users, RefreshCw } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
 import AddHotel from "./add-hotel"
 
-interface HotelInfo {
+interface Hotel {
   id: string
   name: string
-  price: number
-  city: string
   description: string
-  image_url?: string
+  city: string
+  address?: string
+  price: number
+  image_url: string
+  amenities: string[]
+  rating: number
+  available_rooms: number
 }
 
 interface Props {
   currentLocation: { lat: number; lng: number; name: string; city: string } | null
-  userId: string
 }
 
-/**
- * Hotel booking component with option to add new hotels
- */
-export default function HotelBooking({ currentLocation, userId }: Props) {
-  const [hotels, setHotels] = useState<HotelInfo[]>([])
-  const [loading, setLoading] = useState(true)
+export default function HotelBooking({ currentLocation }: Props) {
+  const [hotels, setHotels] = useState<Hotel[]>([])
+  const [loading, setLoading] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  useEffect(() => {
-    loadHotels()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLocation?.city])
+  const fetchHotels = async () => {
+    if (!currentLocation) return
 
-  const loadHotels = async () => {
-    if (!currentLocation?.city) {
-      setHotels([])
-      setLoading(false)
-      return
-    }
     try {
       setLoading(true)
-      const res = await fetch("/api/hotels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city: currentLocation.city }),
-      })
-      const data = await res.json()
-      setHotels(data.hotels ?? [])
-    } catch {
-      // fallback demo hotel
-      setHotels([
-        {
-          id: "demo1",
-          name: "Sunset Paradise Resort",
-          price: 5500,
-          city: currentLocation!.city,
-          description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
-          image_url: "/placeholder.svg?height=240&width=400",
-        },
-        {
-          id: "demo2",
-          name: "City Center Hotel",
-          price: 8500,
-          city: currentLocation!.city,
-          description: "Modern amenities • Business center • Gym • Restaurant",
-          image_url: "/placeholder.svg?height=240&width=400",
-        },
-      ])
+      console.log("Fetching hotels for:", currentLocation.city)
+
+      const response = await fetch(`/api/hotels?city=${encodeURIComponent(currentLocation.city)}`)
+      const data = await response.json()
+
+      console.log("Hotels response:", data)
+
+      if (data.success) {
+        setHotels(data.hotels || [])
+        if (data.hotels?.length > 0) {
+          toast.success(`Found ${data.hotels.length} hotels in ${currentLocation.city}`)
+        }
+      } else {
+        throw new Error(data.error || "Failed to fetch hotels")
+      }
+    } catch (error) {
+      console.error("Error fetching hotels:", error)
+      toast.error("Failed to load hotels")
+      setHotels([])
     } finally {
       setLoading(false)
     }
   }
 
+  useEffect(() => {
+    fetchHotels()
+  }, [currentLocation, refreshKey])
+
   const handleHotelAdded = () => {
-    // Refresh hotels list when a new hotel is added
-    loadHotels()
+    console.log("Hotel added, refreshing list...")
+    setRefreshKey((prev) => prev + 1)
+    toast.success("Hotel list refreshed!")
+  }
+
+  const handleRefresh = () => {
+    setRefreshKey((prev) => prev + 1)
+  }
+
+  const getAmenityIcon = (amenity: string) => {
+    const amenityLower = amenity.toLowerCase()
+    if (amenityLower.includes("wifi")) return <Wifi className="h-3 w-3" />
+    if (amenityLower.includes("parking") || amenityLower.includes("car")) return <Car className="h-3 w-3" />
+    if (amenityLower.includes("restaurant") || amenityLower.includes("food")) return <Utensils className="h-3 w-3" />
+    if (amenityLower.includes("gym") || amenityLower.includes("fitness")) return <Dumbbell className="h-3 w-3" />
+    return <Users className="h-3 w-3" />
   }
 
   if (!currentLocation) {
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <MapPin className="h-10 w-10 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600 mb-4">Set location to view available hotels</p>
-          </CardContent>
-        </Card>
-        <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-blue-600" />
-            <p className="text-gray-600">Loading hotels in {currentLocation.city}…</p>
-          </CardContent>
-        </Card>
-        <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
-      </div>
+      <Card>
+        <CardContent className="p-6 text-center">
+          <MapPin className="h-10 w-10 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-600">Set your location to find hotels</p>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex items-center">
-          <Hotel className="h-5 w-5 mr-2 text-orange-500" />
-          <CardTitle className="text-xl">Hotels in {currentLocation.city}</CardTitle>
-        </CardHeader>
-      </Card>
-
-      {/* Add Hotel Button */}
-      <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
+      {/* Header with Add Hotel and Refresh */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <h2 className="text-xl font-semibold mb-2">Hotels in {currentLocation.city}</h2>
+          <p className="text-gray-600 text-sm">Find and book the perfect accommodation</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="flex items-center gap-2 bg-transparent"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <div className="min-w-[140px]">
+            <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
+          </div>
+        </div>
+      </div>
 
       {/* Hotels List */}
-      {hotels.map((h) => (
-        <Card key={h.id} className="overflow-hidden">
-          {h.image_url && (
-            <img src={h.image_url || "/placeholder.svg"} alt={h.name} className="w-full h-40 object-cover" />
-          )}
-          <CardHeader className="flex items-center justify-between pb-2">
-            <CardTitle className="flex items-center">
-              <BedDouble className="h-4 w-4 mr-2 text-orange-500" />
-              {h.name}
-            </CardTitle>
-            <Badge className="bg-green-100 text-green-700 font-medium">₹{h.price}/night</Badge>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-gray-700 text-sm leading-relaxed">{h.description}</p>
-            <Button size="sm" className="bg-gradient-to-r from-orange-500 to-pink-500 hover:opacity-90 text-white">
-              <CalendarDays className="h-4 w-4 mr-1" />
-              Book Now
-            </Button>
+      {loading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-32 w-full mb-4" />
+                <Skeleton className="h-3 w-full mb-2" />
+                <Skeleton className="h-3 w-2/3" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : hotels.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {hotels.map((hotel) => (
+            <Card key={hotel.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <div className="aspect-video relative">
+                <img
+                  src={hotel.image_url || "/placeholder.svg"}
+                  alt={hotel.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = "/placeholder.svg?height=240&width=400"
+                  }}
+                />
+                <div className="absolute top-2 right-2">
+                  <Badge variant="secondary" className="bg-white/90">
+                    <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
+                    {hotel.rating}
+                  </Badge>
+                </div>
+              </div>
+
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">{hotel.name}</CardTitle>
+                <div className="flex items-center text-sm text-gray-600">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  {hotel.address || hotel.city}
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600 line-clamp-2">{hotel.description}</p>
+
+                {/* Amenities */}
+                {hotel.amenities && hotel.amenities.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {hotel.amenities.slice(0, 4).map((amenity, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {getAmenityIcon(amenity)}
+                        <span className="ml-1">{amenity}</span>
+                      </Badge>
+                    ))}
+                    {hotel.amenities.length > 4 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{hotel.amenities.length - 4} more
+                      </Badge>
+                    )}
+                  </div>
+                )}
+
+                {/* Price and Booking */}
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div>
+                    <div className="text-lg font-semibold">₹{hotel.price.toLocaleString()}</div>
+                    <div className="text-xs text-gray-500">per night</div>
+                  </div>
+                  <div className="text-right">
+                    <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+                      Book Now
+                    </Button>
+                    <div className="text-xs text-gray-500 mt-1">{hotel.available_rooms} rooms left</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-medium mb-2">No hotels found</h3>
+            <p className="text-gray-600 mb-4">No hotels available in {currentLocation.city} at the moment.</p>
+            <AddHotel currentLocation={currentLocation} onHotelAdded={handleHotelAdded} />
           </CardContent>
         </Card>
-      ))}
+      )}
     </div>
   )
 }
