@@ -1,15 +1,11 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
-import { X, MapPin, Camera, Upload, Send, Loader2 } from "lucide-react"
+import { X, MapPin, Camera, Upload } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useUser } from "@clerk/nextjs"
-import { toast } from "sonner"
 
 interface CreatePostProps {
   currentLocation: { lat: number; lng: number; name: string; city: string } | null
@@ -20,15 +16,14 @@ interface CreatePostProps {
   onPostCreated: () => void
 }
 
-export default function CreatePost({
-  currentLocation,
-  userId,
-  userName,
-  userAvatar,
-  onClose,
-  onPostCreated,
+export default function CreatePost({ 
+  currentLocation, 
+  userId, 
+  userName, 
+  userAvatar, 
+  onClose, 
+  onPostCreated 
 }: CreatePostProps) {
-  const { user } = useUser()
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [imageUrl, setImageUrl] = useState("")
@@ -36,28 +31,10 @@ export default function CreatePost({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!title.trim() || !content.trim()) {
-      toast.error("Please fill in both title and content")
-      return
-    }
-
-    if (!currentLocation) {
-      toast.error("Please set your location first")
-      return
-    }
+    if (!title.trim() || !content.trim() || !currentLocation) return
 
     setLoading(true)
-
     try {
-      console.log("Submitting post:", {
-        title: title.trim(),
-        content: content.trim(),
-        city: currentLocation.city,
-        userId,
-        userName,
-      })
-
       const response = await fetch("/api/posts/create", {
         method: "POST",
         headers: {
@@ -77,24 +54,11 @@ export default function CreatePost({
       })
 
       const data = await response.json()
-
-      if (!response.ok) {
-        console.error("Post creation failed:", data)
-        throw new Error(data.error || `HTTP error! status: ${response.status}`)
+      if (data.success) {
+        onPostCreated()
       }
-
-      console.log("Post created successfully:", data)
-
-      // Reset form
-      setTitle("")
-      setContent("")
-      setImageUrl("")
-
-      toast.success("Post created successfully! 🎉")
-      onPostCreated()
     } catch (error) {
       console.error("Error creating post:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to create post. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -130,7 +94,6 @@ export default function CreatePost({
                 required
                 maxLength={100}
                 className="text-lg font-medium"
-                disabled={loading}
               />
               <p className="text-xs text-gray-500 mt-1">{title.length}/100</p>
             </div>
@@ -144,7 +107,6 @@ export default function CreatePost({
                 required
                 maxLength={1000}
                 className="resize-none"
-                disabled={loading}
               />
               <p className="text-xs text-gray-500 mt-1">{content.length}/1000</p>
             </div>
@@ -155,7 +117,6 @@ export default function CreatePost({
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
                 type="url"
-                disabled={loading}
               />
               <p className="text-xs text-gray-500 mt-1">
                 <Upload className="h-3 w-3 inline mr-1" />
@@ -165,9 +126,9 @@ export default function CreatePost({
 
             {imageUrl && (
               <div className="rounded-lg overflow-hidden border">
-                <img
-                  src={imageUrl || "/placeholder.svg"}
-                  alt="Preview"
+                <img 
+                  src={imageUrl || "/placeholder.svg"} 
+                  alt="Preview" 
                   className="w-full h-32 object-cover"
                   onError={() => setImageUrl("")}
                 />
@@ -175,11 +136,11 @@ export default function CreatePost({
             )}
 
             <div className="flex space-x-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="flex-1 bg-transparent"
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose} 
+                className="flex-1"
                 disabled={loading}
               >
                 Cancel
@@ -191,14 +152,11 @@ export default function CreatePost({
               >
                 {loading ? (
                   <>
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Posting...
                   </>
                 ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Share Post
-                  </>
+                  "Share Post"
                 )}
               </Button>
             </div>

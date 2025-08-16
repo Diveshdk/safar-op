@@ -11,20 +11,18 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log("Fetching posts with params:", body)
+
     const { city, showAll, userId } = body
 
-    console.log("Fetching posts with params:", { city, showAll, userId })
-
-    // Build the query
-    let query = supabase.from("user_posts").select("*").order("created_at", { ascending: false })
+    let query = supabase.from("user_posts").select("*").order("created_at", { ascending: false }).limit(20)
 
     // Filter by city if not showing all posts
     if (!showAll && city) {
       query = query.eq("city", city)
     }
 
-    // Execute the query
-    const { data: posts, error } = await query.limit(50)
+    const { data: posts, error } = await query
 
     if (error) {
       console.error("Supabase error fetching posts:", error)
@@ -32,7 +30,6 @@ export async function POST(request: NextRequest) {
         {
           error: "Failed to fetch posts",
           details: error.message,
-          code: error.code,
         },
         { status: 500 },
       )
@@ -40,58 +37,36 @@ export async function POST(request: NextRequest) {
 
     console.log(`Found ${posts?.length || 0} posts`)
 
-    // If no posts found, return empty array
-    if (!posts || posts.length === 0) {
-      return NextResponse.json({
-        success: true,
-        posts: [],
-      })
+    // Check which posts the user has liked
+    if (userId && posts && posts.length > 0) {
+      const postIds = posts.map((post) => post.id)
+      const { data: likes, error: likesError } = await supabase
+        .from("post_likes")
+        .select("post_id")
+        .eq("user_id", userId)
+        .in("post_id", postIds)
+
+      if (!likesError && likes) {
+        const likedPostIds = new Set(likes.map((like) => like.post_id))
+
+        // Add liked_by_user field to each post
+        const postsWithLikeStatus = posts.map((post) => ({
+          ...post,
+          liked_by_user: likedPostIds.has(post.id),
+        }))
+
+        return NextResponse.json({ posts: postsWithLikeStatus })
+      }
     }
 
-    // Check which posts the user has liked
-    let postsWithLikes = posts
-
-    if (userId) {
-      try {
-        const postIds = posts.map((post) => post.id)
-        const { data: likes, error: likesError } = await supabase
-          .from("post_likes")
-          .select("post_id")
-          .eq("user_id", userId)
-          .in("post_id", postIds)
-
-        if (likesError) {
-          console.error("Error fetching likes:", likesError)
-          // Continue without like status if there's an error
-          postsWithLikes = posts.map((post) => ({
-            ...post,
-            liked_by_user: false,
-          }))
-        } else {
-          const likedPostIds = new Set(likes?.map((like) => like.post_id) || [])
-          postsWithLikes = posts.map((post) => ({
-            ...post,
-            liked_by_user: likedPostIds.has(post.id),
-          }))
-        }
-      } catch (likeError) {
-        console.error("Error checking likes:", likeError)
-        postsWithLikes = posts.map((post) => ({
-          ...post,
-          liked_by_user: false,
-        }))
-      }
-    } else {
-      postsWithLikes = posts.map((post) => ({
+    // If no user ID or error checking likes, return posts without like status
+    const postsWithLikeStatus =
+      posts?.map((post) => ({
         ...post,
         liked_by_user: false,
-      }))
-    }
+      })) || []
 
-    return NextResponse.json({
-      success: true,
-      posts: postsWithLikes,
-    })
+    return NextResponse.json({ posts: postsWithLikeStatus })
   } catch (error) {
     console.error("Error in posts API:", error)
     return NextResponse.json(

@@ -1,19 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Heart, MessageCircle, MapPin, Clock, Camera, RefreshCw } from "lucide-react"
+import { Heart, MessageCircle, MapPin, Clock, Camera } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { useUser } from "@clerk/nextjs"
-import { toast } from "sonner"
 
 interface UserPostsProps {
   currentLocation: { lat: number; lng: number; name: string; city: string } | null
   userId: string
   showAll?: boolean
-  refreshTrigger?: number
+  refreshTrigger?: number // Add this new prop
 }
 
 interface Post {
@@ -32,26 +30,15 @@ interface Post {
 }
 
 export default function UserPosts({ currentLocation, userId, showAll = false, refreshTrigger }: UserPostsProps) {
-  const { user } = useUser()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadPosts()
-  }, [currentLocation, showAll, refreshTrigger, user])
+  }, [currentLocation, showAll, refreshTrigger]) // Add refreshTrigger here
 
   const loadPosts = async () => {
     try {
-      setLoading(true)
-      setError(null)
-
-      console.log("Loading posts with params:", {
-        city: currentLocation?.city,
-        showAll,
-        userId: user?.id,
-      })
-
       const response = await fetch("/api/posts", {
         method: "POST",
         headers: {
@@ -60,71 +47,44 @@ export default function UserPosts({ currentLocation, userId, showAll = false, re
         body: JSON.stringify({
           city: currentLocation?.city,
           showAll: showAll,
-          userId: user?.id || null,
+          userId: userId,
         }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-
       const data = await response.json()
-      console.log("Posts loaded:", data)
-
       setPosts(data.posts || [])
     } catch (error) {
       console.error("Error loading posts:", error)
-      setError(error instanceof Error ? error.message : "Failed to load posts")
-      toast.error("Failed to load posts")
     } finally {
       setLoading(false)
     }
   }
 
   const handleLike = async (postId: string) => {
-    if (!user) {
-      toast.error("Please sign in to like posts")
-      return
-    }
-
     try {
-      console.log("Liking post:", postId)
-
       const response = await fetch("/api/posts/like", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ postId, userId: user.id }),
+        body: JSON.stringify({ postId, userId }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      console.log("Like response:", data)
-
-      if (data.success) {
-        setPosts((prevPosts) =>
-          prevPosts.map((post) =>
+      if (response.ok) {
+        setPosts(
+          posts.map((post) =>
             post.id === postId
               ? {
                   ...post,
-                  likes: data.liked ? post.likes + 1 : post.likes - 1,
-                  liked_by_user: data.liked,
+                  likes: post.liked_by_user ? post.likes - 1 : post.likes + 1,
+                  liked_by_user: !post.liked_by_user,
                 }
               : post,
           ),
         )
-
-        toast.success(data.liked ? "Post liked! ❤️" : "Like removed")
       }
     } catch (error) {
       console.error("Error liking post:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to like post")
     }
   }
 
@@ -134,22 +94,6 @@ export default function UserPosts({ currentLocation, userId, showAll = false, re
         <CardContent className="p-8 sm:p-12 text-center">
           <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-slate-600 border-t-transparent mx-auto mb-4 sm:mb-6"></div>
           <p className="text-gray-700 font-semibold text-base sm:text-lg">Loading posts...</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card className="shadow-xl border-0 bg-white">
-        <CardContent className="p-8 sm:p-12 text-center">
-          <Camera className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-red-400 mb-4 sm:mb-6" />
-          <p className="text-red-600 mb-2 sm:mb-3 font-semibold text-lg sm:text-xl">Error loading posts</p>
-          <p className="text-gray-500 text-base sm:text-lg leading-relaxed mb-4">{error}</p>
-          <Button onClick={loadPosts} className="bg-slate-600 hover:bg-slate-700">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
         </CardContent>
       </Card>
     )
@@ -230,10 +174,6 @@ export default function UserPosts({ currentLocation, userId, showAll = false, re
                       src={post.image_url || "/placeholder.svg"}
                       alt="Post image"
                       className="w-full h-48 sm:h-64 md:h-80 object-cover hover:scale-110 transition-transform duration-500"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.src = "/placeholder.svg?height=300&width=500"
-                      }}
                     />
                   </div>
                 )}
@@ -247,7 +187,6 @@ export default function UserPosts({ currentLocation, userId, showAll = false, re
                       className={`flex items-center space-x-1 sm:space-x-2 hover:bg-rose-50 rounded-full px-3 sm:px-4 py-2 transition-all duration-300 ${
                         post.liked_by_user ? "text-rose-600 bg-rose-50" : "text-gray-600"
                       }`}
-                      disabled={!user}
                     >
                       <Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${post.liked_by_user ? "fill-current" : ""}`} />
                       <span className="font-semibold text-sm sm:text-base">{post.likes}</span>
