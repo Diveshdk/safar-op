@@ -10,7 +10,8 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
 
 export async function POST(request: NextRequest) {
   try {
-    const { postId, userId } = await request.json()
+    const body = await request.json()
+    const { postId, userId } = body
 
     console.log("Processing like for:", { postId, userId })
 
@@ -24,18 +25,17 @@ export async function POST(request: NextRequest) {
       .select("id")
       .eq("post_id", postId)
       .eq("user_id", userId)
-      .single()
+      .maybeSingle()
 
-    if (checkError && checkError.code !== "PGRST116") {
-      // PGRST116 is "not found" error
+    if (checkError) {
       console.error("Error checking existing like:", checkError)
-      return NextResponse.json({ error: "Failed to check like status" }, { status: 500 })
+      return NextResponse.json({ error: "Failed to check like status", details: checkError.message }, { status: 500 })
     }
 
     let liked = false
 
     if (existingLike) {
-      // Unlike the post
+      // Unlike the post - remove the like
       const { error: deleteError } = await supabase
         .from("post_likes")
         .delete()
@@ -44,43 +44,64 @@ export async function POST(request: NextRequest) {
 
       if (deleteError) {
         console.error("Error removing like:", deleteError)
-        return NextResponse.json({ error: "Failed to remove like" }, { status: 500 })
+        return NextResponse.json({ error: "Failed to remove like", details: deleteError.message }, { status: 500 })
       }
 
-      // Decrease like count
-      const { error: updateError } = await supabase
+      // Get current likes count and decrease it
+      const { data: currentPost, error: fetchError } = await supabase
         .from("user_posts")
-        .update({ likes: supabase.raw("likes - 1") })
+        .select("likes")
         .eq("id", postId)
+        .single()
 
-      if (updateError) {
-        console.error("Error updating like count:", updateError)
+      if (fetchError) {
+        console.error("Error fetching current post:", fetchError)
+      } else {
+        const newLikesCount = Math.max(0, (currentPost.likes || 0) - 1)
+        const { error: updateError } = await supabase
+          .from("user_posts")
+          .update({ likes: newLikesCount })
+          .eq("id", postId)
+
+        if (updateError) {
+          console.error("Error updating like count:", updateError)
+        }
       }
 
       liked = false
     } else {
-      // Like the post
+      // Like the post - add the like
       const { error: insertError } = await supabase.from("post_likes").insert([
         {
           post_id: postId,
           user_id: userId,
-          created_at: new Date().toISOString(),
         },
       ])
 
       if (insertError) {
         console.error("Error adding like:", insertError)
-        return NextResponse.json({ error: "Failed to add like" }, { status: 500 })
+        return NextResponse.json({ error: "Failed to add like", details: insertError.message }, { status: 500 })
       }
 
-      // Increase like count
-      const { error: updateError } = await supabase
+      // Get current likes count and increase it
+      const { data: currentPost, error: fetchError } = await supabase
         .from("user_posts")
-        .update({ likes: supabase.raw("likes + 1") })
+        .select("likes")
         .eq("id", postId)
+        .single()
 
-      if (updateError) {
-        console.error("Error updating like count:", updateError)
+      if (fetchError) {
+        console.error("Error fetching current post:", fetchError)
+      } else {
+        const newLikesCount = (currentPost.likes || 0) + 1
+        const { error: updateError } = await supabase
+          .from("user_posts")
+          .update({ likes: newLikesCount })
+          .eq("id", postId)
+
+        if (updateError) {
+          console.error("Error updating like count:", updateError)
+        }
       }
 
       liked = true
