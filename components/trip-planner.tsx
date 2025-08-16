@@ -1,30 +1,35 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
-  CalendarDays,
+  Calendar,
   MapPin,
   DollarSign,
   Clock,
-  Plane,
   Hotel,
-  Utensils,
-  ShoppingBag,
-  AlertTriangle,
+  Car,
   CheckCircle2,
-  Loader2,
+  AlertCircle,
+  Plane,
+  Star,
+  Phone,
+  Shield,
+  Package,
+  Lightbulb,
+  TrendingUp,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+interface TripPlannerProps {
+  currentLocation: { lat: number; lng: number; name: string; city: string } | null
+}
 
 interface TripPlan {
   tripOverview: {
@@ -128,23 +133,27 @@ interface TripPlan {
   }>
 }
 
-export default function TripPlanner() {
+export default function TripPlanner({ currentLocation }: TripPlannerProps) {
   const [destination, setDestination] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [budget, setBudget] = useState("")
   const [travelers, setTravelers] = useState("")
   const [preferences, setPreferences] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const [tripPlan, setTripPlan] = useState<TripPlan | null>(null)
-  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [checkedItems, setCheckedItems] = useState<{ [key: string]: boolean }>({})
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    setError("")
-    setTripPlan(null)
+    if (!destination || !startDate || !endDate) {
+      setError("Please fill in all required fields")
+      return
+    }
 
+    setLoading(true)
+    setError(null)
     try {
       const response = await fetch("/api/trip-planner", {
         method: "POST",
@@ -152,206 +161,219 @@ export default function TripPlanner() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          destination,
+          destination: destination.trim(),
           startDate,
           endDate,
-          budget,
+          budget: budget || "Moderate",
           travelers: Number.parseInt(travelers) || 1,
-          preferences,
+          preferences: preferences.trim(),
+          currentLocation,
         }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate trip plan")
+        throw new Error(data.error || `Planning failed: ${response.status}`)
       }
 
       setTripPlan(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+    } catch (error) {
+      console.error("Trip planning error:", error)
+      setError(error instanceof Error ? error.message : "Failed to create trip plan. Please try again.")
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
+  const toggleCheckItem = (category: string, index: number) => {
+    const key = `${category}-${index}`
+    setCheckedItems((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }))
+  }
+
+  const formatCurrency = (amount: string) => {
+    return amount.replace(/\$/g, "₹")
+  }
+
   return (
-    <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-      <Card className="bg-white shadow-lg border-0 rounded-2xl">
-        <CardHeader className="bg-slate-800 text-white rounded-t-2xl p-6">
-          <CardTitle className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-            <Plane className="h-8 w-8" />
-            AI Trip Planner
+    <div className="space-y-6 sm:space-y-8">
+      <div className="text-center">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">AI Trip Planner ✈️</h2>
+        <p className="text-gray-600 text-base sm:text-lg">
+          Let our AI create a personalized, detailed itinerary for your perfect trip
+        </p>
+      </div>
+
+      {/* Trip Planning Form */}
+      <Card className="shadow-lg border-0 bg-white">
+        <CardHeader className="bg-slate-800 text-white rounded-t-lg">
+          <CardTitle className="flex items-center text-lg sm:text-xl">
+            <MapPin className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />
+            Plan Your Dream Trip
           </CardTitle>
-          <CardDescription className="text-slate-200 text-base sm:text-lg">
-            Get personalized travel itineraries powered by AI
-          </CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="destination" className="text-sm font-semibold text-slate-700">
-                  Destination *
-                </Label>
+        <CardContent className="p-4 sm:p-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Destination *</label>
                 <Input
-                  id="destination"
-                  type="text"
-                  placeholder="e.g., Goa, Kerala, Rajasthan"
+                  placeholder="e.g., Goa, Kerala, Paris, Tokyo"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
-                  required
-                  className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
+                  className="w-full"
+                  disabled={loading}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="travelers" className="text-sm font-semibold text-slate-700">
-                  Number of Travelers *
-                </Label>
-                <Input
-                  id="travelers"
-                  type="number"
-                  min="1"
-                  max="20"
-                  placeholder="e.g., 2"
-                  value={travelers}
-                  onChange={(e) => setTravelers(e.target.value)}
-                  required
-                  className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="startDate" className="text-sm font-semibold text-slate-700">
-                  Start Date *
-                </Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  required
-                  className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="endDate" className="text-sm font-semibold text-slate-700">
-                  End Date *
-                </Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
-                  className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="budget" className="text-sm font-semibold text-slate-700">
-                  Budget Range
-                </Label>
-                <Select value={budget} onValueChange={setBudget}>
-                  <SelectTrigger className="h-12 border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl">
-                    <SelectValue placeholder="Select budget range" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Number of Travelers</label>
+                <Select value={travelers} onValueChange={setTravelers} disabled={loading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select travelers" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Budget">Budget (₹5,000-15,000)</SelectItem>
-                    <SelectItem value="Moderate">Moderate (₹15,000-35,000)</SelectItem>
-                    <SelectItem value="Luxury">Luxury (₹35,000+)</SelectItem>
+                    <SelectItem value="1">1 Person</SelectItem>
+                    <SelectItem value="2">2 People</SelectItem>
+                    <SelectItem value="3">3 People</SelectItem>
+                    <SelectItem value="4">4 People</SelectItem>
+                    <SelectItem value="5">5+ People</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="preferences" className="text-sm font-semibold text-slate-700">
-                  Travel Preferences
-                </Label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">End Date *</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Budget Range</label>
+                <Select value={budget} onValueChange={setBudget} disabled={loading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select budget" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Budget">Budget (₹3,000-5,000/day)</SelectItem>
+                    <SelectItem value="Moderate">Moderate (₹6,000-10,000/day)</SelectItem>
+                    <SelectItem value="Luxury">Luxury (₹14,000+/day)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Travel Preferences</label>
                 <Textarea
-                  id="preferences"
-                  placeholder="e.g., Adventure activities, cultural sites, food experiences, relaxation"
+                  placeholder="e.g., Adventure sports, cultural sites, beaches, food tours, photography"
                   value={preferences}
                   onChange={(e) => setPreferences(e.target.value)}
-                  className="min-h-[100px] border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none"
+                  className="w-full"
+                  rows={3}
+                  disabled={loading}
                 />
               </div>
             </div>
 
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                <div className="flex items-center">
+                  <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mr-2 sm:mr-3" />
+                  <p className="text-red-600 text-sm sm:text-base">{error}</p>
+                </div>
+              </div>
+            )}
+
             <Button
               type="submit"
-              disabled={isLoading}
-              className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+              disabled={loading || !destination || !startDate || !endDate}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 sm:py-4 text-base sm:text-lg rounded-xl transition-all duration-300 hover:scale-105"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Generating Your Perfect Trip...
-                </>
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2 sm:mr-3"></div>
+                  Creating Your Perfect Trip...
+                </div>
               ) : (
-                <>
-                  <Plane className="mr-2 h-5 w-5" />
-                  Plan My Trip
-                </>
+                <div className="flex items-center">
+                  <Plane className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
+                  Generate AI Trip Plan
+                </div>
               )}
             </Button>
           </form>
-
-          {error && (
-            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <div className="flex items-center gap-2 text-red-800">
-                <AlertTriangle className="h-5 w-5" />
-                <span className="font-semibold">Error:</span>
-                <span>{error}</span>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {tripPlan && (
-        <div className="space-y-6">
+      {/* Loading State */}
+      {loading && (
+        <Card className="shadow-lg border-0 bg-white">
+          <CardContent className="p-8 sm:p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-4 sm:mb-6"></div>
+            <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">Creating Your Perfect Trip Plan...</h3>
+            <p className="text-gray-600 text-sm sm:text-base">
+              Our AI is analyzing destinations, finding the best activities, and creating a personalized itinerary just
+              for you
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Trip Plan Results */}
+      {tripPlan && !loading && (
+        <div className="space-y-6 sm:space-y-8">
           {/* Trip Overview */}
-          <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-              <CardTitle className="text-2xl sm:text-3xl font-bold">
-                {tripPlan.tripOverview.destination} Trip Overview
-              </CardTitle>
-              <CardDescription className="text-blue-100 text-base sm:text-lg">
-                {tripPlan.tripOverview.summary}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                <div className="text-center p-4 bg-blue-50 rounded-xl">
-                  <CalendarDays className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-slate-800">{tripPlan.tripOverview.duration}</div>
-                  <div className="text-sm text-slate-600">Days</div>
-                </div>
-                <div className="text-center p-4 bg-emerald-50 rounded-xl">
-                  <DollarSign className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-slate-800">{tripPlan.tripOverview.totalEstimatedCost}</div>
-                  <div className="text-sm text-slate-600">Total Cost</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-xl">
-                  <MapPin className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                  <div className="text-lg font-bold text-slate-800">{tripPlan.tripOverview.startDate}</div>
-                  <div className="text-sm text-slate-600">Start Date</div>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-xl">
-                  <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                  <div className="text-lg font-bold text-slate-800">{tripPlan.tripOverview.endDate}</div>
-                  <div className="text-sm text-slate-600">End Date</div>
+          <Card className="shadow-lg border-0 bg-white overflow-hidden">
+            <div className="bg-slate-800 text-white p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-2">{tripPlan.tripOverview.destination}</h1>
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-slate-300 text-sm sm:text-base">
+                    <span className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+                      {tripPlan.tripOverview.duration} Days
+                    </span>
+                    <span className="flex items-center">
+                      <DollarSign className="h-4 w-4 mr-1 sm:mr-2" />
+                      {formatCurrency(tripPlan.tripOverview.totalEstimatedCost)}
+                    </span>
+                    <span className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1 sm:mr-2" />
+                      {tripPlan.tripOverview.bestTimeToVisit}
+                    </span>
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-slate-800">Trip Highlights</h3>
+            </div>
+            <CardContent className="p-4 sm:p-6">
+              <p className="text-gray-700 text-base sm:text-lg leading-relaxed mb-4 sm:mb-6">
+                {tripPlan.tripOverview.summary}
+              </p>
+              <div>
+                <h4 className="font-semibold mb-3 text-base sm:text-lg">Trip Highlights:</h4>
                 <div className="flex flex-wrap gap-2">
                   {tripPlan.tripOverview.highlights.map((highlight, index) => (
-                    <Badge key={index} variant="secondary" className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                    <Badge key={index} variant="secondary" className="text-xs sm:text-sm">
+                      <Star className="h-3 w-3 mr-1" />
                       {highlight}
                     </Badge>
                   ))}
@@ -360,325 +382,122 @@ export default function TripPlanner() {
             </CardContent>
           </Card>
 
-          {/* Detailed Tabs */}
+          {/* Detailed Information Tabs */}
           <Tabs defaultValue="itinerary" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-6 h-auto p-1 bg-slate-100 rounded-xl">
-              <TabsTrigger
-                value="itinerary"
-                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:grid-cols-8 gap-1">
+              <TabsTrigger value="itinerary" className="text-xs sm:text-sm">
                 Itinerary
               </TabsTrigger>
-              <TabsTrigger
-                value="accommodation"
-                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="accommodation" className="text-xs sm:text-sm">
                 Hotels
               </TabsTrigger>
-              <TabsTrigger
-                value="transport"
-                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="transport" className="text-xs sm:text-sm">
                 Transport
               </TabsTrigger>
-              <TabsTrigger
-                value="budget"
-                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="budget" className="text-xs sm:text-sm">
                 Budget
               </TabsTrigger>
-              <TabsTrigger
-                value="packing"
-                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="packing" className="text-xs sm:text-sm">
                 Packing
               </TabsTrigger>
-              <TabsTrigger
-                value="tips"
-                className="px-3 py-2 text-xs sm:text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
+              <TabsTrigger value="tips" className="text-xs sm:text-sm">
                 Tips
+              </TabsTrigger>
+              <TabsTrigger value="emergency" className="text-xs sm:text-sm">
+                Emergency
+              </TabsTrigger>
+              <TabsTrigger value="checklist" className="text-xs sm:text-sm">
+                Checklist
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="itinerary" className="mt-6">
-              <div className="space-y-6">
-                {tripPlan.dailyItinerary.map((day) => (
-                  <Card key={day.day} className="bg-white shadow-lg border-0 rounded-2xl">
-                    <CardHeader className="bg-slate-50 rounded-t-2xl p-6">
-                      <CardTitle className="text-xl font-bold text-slate-800">
-                        Day {day.day}: {day.title}
-                      </CardTitle>
-                      <CardDescription className="text-slate-600">{day.date}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-6">
-                      <div>
-                        <h4 className="text-lg font-semibold text-slate-800 mb-4">Activities</h4>
+            <TabsContent value="itinerary" className="space-y-4 sm:space-y-6">
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader className="bg-blue-50">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <Calendar className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-blue-600" />
+                    Daily Itinerary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-6 sm:space-y-8">
+                    {tripPlan.dailyItinerary.map((day, index) => (
+                      <div key={index} className="border-l-4 border-blue-500 pl-4 sm:pl-6">
+                        <div className="mb-4">
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+                            Day {day.day}: {day.title}
+                          </h3>
+                          <p className="text-sm text-gray-500">{day.date}</p>
+                        </div>
+
                         <div className="space-y-4">
-                          {day.activities.map((activity, index) => (
-                            <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4 text-blue-600" />
-                                  <span className="font-semibold text-slate-800">{activity.time}</span>
-                                  <span className="text-slate-600">•</span>
-                                  <span className="font-medium text-slate-800">{activity.activity}</span>
+                          <div>
+                            <h4 className="font-semibold mb-3 text-blue-700 text-base sm:text-lg">Activities</h4>
+                            <div className="space-y-3 sm:space-y-4">
+                              {day.activities.map((activity, actIndex) => (
+                                <div key={actIndex} className="bg-blue-50 p-3 sm:p-4 rounded-lg">
+                                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2">
+                                    <h5 className="font-semibold text-gray-900 text-sm sm:text-base">
+                                      {activity.activity}
+                                    </h5>
+                                    <div className="flex flex-wrap gap-2 mt-1 sm:mt-0">
+                                      <Badge variant="outline" className="text-xs">
+                                        {activity.time}
+                                      </Badge>
+                                      <Badge variant="outline" className="text-xs">
+                                        {formatCurrency(activity.cost)}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    <MapPin className="h-3 w-3 inline mr-1" />
+                                    {activity.location}
+                                  </p>
+                                  <p className="text-sm text-gray-700 mb-2">{activity.description}</p>
+                                  <p className="text-xs text-blue-600 bg-blue-100 p-2 rounded">💡 {activity.tips}</p>
                                 </div>
-                                <Badge variant="outline" className="w-fit">
-                                  {activity.cost}
-                                </Badge>
-                              </div>
-                              <div className="text-sm text-slate-600 mb-1">
-                                <MapPin className="h-3 w-3 inline mr-1" />
-                                {activity.location} • {activity.duration}
-                              </div>
-                              <p className="text-sm text-slate-700 mb-2">{activity.description}</p>
-                              <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded-lg">💡 {activity.tips}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div>
-                        <h4 className="text-lg font-semibold text-slate-800 mb-4">Meals</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {day.meals.map((meal, index) => (
-                            <div key={index} className="p-4 bg-emerald-50 rounded-xl">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Utensils className="h-4 w-4 text-emerald-600" />
-                                <span className="font-semibold text-slate-800">{meal.type}</span>
-                              </div>
-                              <div className="text-sm space-y-1">
-                                <div className="font-medium text-slate-800">{meal.restaurant}</div>
-                                <div className="text-slate-600">{meal.location}</div>
-                                <div className="text-emerald-600 font-semibold">{meal.cost}</div>
-                                <div className="text-xs text-slate-600">{meal.speciality}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="p-4 bg-purple-50 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Hotel className="h-4 w-4 text-purple-600" />
-                          <span className="font-semibold text-slate-800">Accommodation</span>
-                        </div>
-                        <div className="text-sm space-y-1">
-                          <div className="font-medium text-slate-800">{day.accommodation.hotel}</div>
-                          <div className="text-slate-600">{day.accommodation.location}</div>
-                          <div className="text-purple-600 font-semibold">{day.accommodation.cost}</div>
-                          <div className="text-xs text-slate-600">Check-in: {day.accommodation.checkIn}</div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="accommodation" className="mt-6">
-              <div className="space-y-6">
-                {tripPlan.accommodationDetails.map((hotel, index) => (
-                  <Card key={index} className="bg-white shadow-lg border-0 rounded-2xl">
-                    <CardHeader className="p-6">
-                      <CardTitle className="text-xl font-bold text-slate-800">{hotel.name}</CardTitle>
-                      <CardDescription className="text-slate-600">
-                        {hotel.type} • {hotel.location}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-6 pt-0">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="font-semibold text-slate-800 mb-2">Pricing</h4>
-                            <div className="text-sm space-y-1">
-                              <div>
-                                Per Night: <span className="font-semibold text-emerald-600">{hotel.pricePerNight}</span>
-                              </div>
-                              <div>
-                                Total Nights: <span className="font-semibold">{hotel.totalNights}</span>
-                              </div>
-                              <div>
-                                Total Cost: <span className="font-semibold text-emerald-600">{hotel.totalCost}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-slate-800 mb-2">Amenities</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {hotel.amenities.map((amenity, i) => (
-                                <Badge key={i} variant="secondary" className="text-xs">
-                                  {amenity}
-                                </Badge>
                               ))}
                             </div>
                           </div>
-                        </div>
-                        <div className="space-y-4">
+
                           <div>
-                            <h4 className="font-semibold text-slate-800 mb-2">Booking Tips</h4>
-                            <p className="text-sm text-slate-600 bg-blue-50 p-3 rounded-lg">{hotel.bookingTips}</p>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-slate-800 mb-2">Alternatives</h4>
-                            <ul className="text-sm text-slate-600 space-y-1">
-                              {hotel.alternatives.map((alt, i) => (
-                                <li key={i}>• {alt}</li>
+                            <h4 className="font-semibold mb-3 text-orange-700 text-base sm:text-lg">Meals</h4>
+                            <div className="space-y-2 sm:space-y-3">
+                              {day.meals.map((meal, mealIndex) => (
+                                <div key={mealIndex} className="bg-orange-50 p-3 sm:p-4 rounded-lg">
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                      <h5 className="font-semibold text-gray-900 text-sm sm:text-base">
+                                        {meal.type} at {meal.restaurant}
+                                      </h5>
+                                      <p className="text-sm text-gray-600">{meal.location}</p>
+                                      <p className="text-sm text-orange-700">Try: {meal.speciality}</p>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs mt-2 sm:mt-0">
+                                      {formatCurrency(meal.cost)}
+                                    </Badge>
+                                  </div>
+                                </div>
                               ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="transport" className="mt-6">
-              <div className="space-y-6">
-                <Card className="bg-white shadow-lg border-0 rounded-2xl">
-                  <CardHeader className="p-6">
-                    <CardTitle className="text-xl font-bold text-slate-800">To Destination</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <div className="text-sm">
-                          <span className="font-semibold">Method:</span> {tripPlan.transportation.toDestination.method}
-                        </div>
-                        <div className="text-sm">
-                          <span className="font-semibold">Cost:</span>{" "}
-                          <span className="text-emerald-600">{tripPlan.transportation.toDestination.cost}</span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="font-semibold">Duration:</span>{" "}
-                          {tripPlan.transportation.toDestination.duration}
-                        </div>
-                        <div className="text-sm">
-                          <span className="font-semibold">Details:</span>{" "}
-                          {tripPlan.transportation.toDestination.details}
-                        </div>
-                      </div>
-                      <div className="bg-blue-50 p-4 rounded-xl">
-                        <h4 className="font-semibold text-slate-800 mb-2">Booking Tips</h4>
-                        <p className="text-sm text-slate-600">{tripPlan.transportation.toDestination.bookingTips}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white shadow-lg border-0 rounded-2xl">
-                  <CardHeader className="p-6">
-                    <CardTitle className="text-xl font-bold text-slate-800">Local Transportation</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {tripPlan.transportation.localTransport.map((transport, index) => (
-                        <div key={index} className="p-4 bg-slate-50 rounded-xl">
-                          <h4 className="font-semibold text-slate-800 mb-2">{transport.method}</h4>
-                          <div className="text-sm space-y-1">
-                            <div>
-                              Cost: <span className="font-semibold text-emerald-600">{transport.cost}</span>
                             </div>
-                            <div className="text-slate-600">{transport.tips}</div>
+                          </div>
+
+                          <div className="bg-purple-50 p-3 sm:p-4 rounded-lg">
+                            <h4 className="font-semibold mb-2 text-purple-700 text-base sm:text-lg">Accommodation</h4>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <h5 className="font-semibold text-gray-900 text-sm sm:text-base">
+                                  {day.accommodation.hotel}
+                                </h5>
+                                <p className="text-sm text-gray-600">{day.accommodation.location}</p>
+                                <p className="text-sm text-purple-600">Check-in: {day.accommodation.checkIn}</p>
+                              </div>
+                              <Badge variant="outline" className="text-xs mt-2 sm:mt-0">
+                                {formatCurrency(day.accommodation.cost)}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="budget" className="mt-6">
-              <Card className="bg-white shadow-lg border-0 rounded-2xl">
-                <CardHeader className="p-6">
-                  <CardTitle className="text-xl font-bold text-slate-800">Budget Breakdown</CardTitle>
-                  <CardDescription className="text-slate-600">
-                    Daily Average: {tripPlan.budgetBreakdown.dailyAverage}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6 pt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                    <div className="p-4 bg-blue-50 rounded-xl text-center">
-                      <Hotel className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.accommodation}</div>
-                      <div className="text-sm text-slate-600">Accommodation</div>
-                    </div>
-                    <div className="p-4 bg-emerald-50 rounded-xl text-center">
-                      <Plane className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
-                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.transportation}</div>
-                      <div className="text-sm text-slate-600">Transportation</div>
-                    </div>
-                    <div className="p-4 bg-orange-50 rounded-xl text-center">
-                      <Utensils className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.food}</div>
-                      <div className="text-sm text-slate-600">Food</div>
-                    </div>
-                    <div className="p-4 bg-purple-50 rounded-xl text-center">
-                      <MapPin className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.activities}</div>
-                      <div className="text-sm text-slate-600">Activities</div>
-                    </div>
-                    <div className="p-4 bg-rose-50 rounded-xl text-center">
-                      <ShoppingBag className="h-8 w-8 text-rose-600 mx-auto mb-2" />
-                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.shopping}</div>
-                      <div className="text-sm text-slate-600">Shopping</div>
-                    </div>
-                    <div className="p-4 bg-slate-100 rounded-xl text-center">
-                      <DollarSign className="h-8 w-8 text-slate-600 mx-auto mb-2" />
-                      <div className="text-lg font-bold text-slate-800">{tripPlan.budgetBreakdown.miscellaneous}</div>
-                      <div className="text-sm text-slate-600">Miscellaneous</div>
-                    </div>
-                  </div>
-
-                  <div className="p-6 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl text-center">
-                    <div className="text-3xl font-bold text-slate-800 mb-2">{tripPlan.budgetBreakdown.total}</div>
-                    <div className="text-lg text-slate-600">Total Estimated Cost</div>
-                  </div>
-
-                  <div className="mt-6">
-                    <h4 className="font-semibold text-slate-800 mb-3">Money-Saving Tips</h4>
-                    <ul className="space-y-2">
-                      {tripPlan.budgetBreakdown.budgetTips.map((tip, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                          {tip}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="packing" className="mt-6">
-              <Card className="bg-white shadow-lg border-0 rounded-2xl">
-                <CardHeader className="p-6">
-                  <CardTitle className="text-xl font-bold text-slate-800">Packing Checklist</CardTitle>
-                  <CardDescription className="text-slate-600">Essential items for your trip</CardDescription>
-                </CardHeader>
-                <CardContent className="p-6 pt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Object.entries(tripPlan.packingList).map(([category, items]) => (
-                      <div key={category} className="space-y-3">
-                        <h4 className="font-semibold text-slate-800 capitalize border-b border-slate-200 pb-2">
-                          {category.replace(/([A-Z])/g, " $1").trim()}
-                        </h4>
-                        <ul className="space-y-2">
-                          {items.map((item, index) => (
-                            <li key={index} className="flex items-center gap-2 text-sm text-slate-600">
-                              <div className="w-4 h-4 border border-slate-300 rounded flex-shrink-0"></div>
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
                       </div>
                     ))}
                   </div>
@@ -686,109 +505,363 @@ export default function TripPlanner() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="tips" className="mt-6">
-              <div className="space-y-6">
-                <Card className="bg-white shadow-lg border-0 rounded-2xl">
-                  <CardHeader className="p-6">
-                    <CardTitle className="text-xl font-bold text-slate-800">Important Travel Tips</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 pt-0">
-                    <ul className="space-y-3">
-                      {tripPlan.importantTips.map((tip, index) => (
-                        <li key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl">
-                          <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-slate-700">{tip}</span>
+            <TabsContent value="accommodation">
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader className="bg-purple-50">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <Hotel className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-purple-600" />
+                    Accommodation Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-4 sm:space-y-6">
+                    {tripPlan.accommodationDetails.map((hotel, index) => (
+                      <div key={index} className="bg-purple-50 p-4 sm:p-6 rounded-lg">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
+                          <div>
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">{hotel.name}</h3>
+                            <p className="text-gray-600 mb-2">{hotel.location}</p>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              <Badge variant="secondary">{hotel.type}</Badge>
+                              <Badge variant="outline">{formatCurrency(hotel.pricePerNight)}</Badge>
+                              <Badge variant="outline">{hotel.totalNights} nights</Badge>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg sm:text-xl font-bold text-purple-600">
+                              {formatCurrency(hotel.totalCost)}
+                            </p>
+                            <p className="text-sm text-gray-500">Total Cost</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                          <div>
+                            <h4 className="font-semibold mb-2 text-base sm:text-lg">Amenities</h4>
+                            <div className="flex flex-wrap gap-1 sm:gap-2">
+                              {hotel.amenities.map((amenity, amenityIndex) => (
+                                <Badge key={amenityIndex} variant="outline" className="text-xs">
+                                  {amenity}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold mb-2 text-base sm:text-lg">Alternatives</h4>
+                            <ul className="text-sm text-gray-600 space-y-1">
+                              {hotel.alternatives.map((alt, altIndex) => (
+                                <li key={altIndex}>• {alt}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-purple-100 rounded">
+                          <p className="text-sm text-purple-800">
+                            <Lightbulb className="h-4 w-4 inline mr-1" />
+                            {hotel.bookingTips}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="transport">
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader className="bg-green-50">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <Car className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-green-600" />
+                    Transportation Guide
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                  <div className="bg-green-50 p-4 sm:p-6 rounded-lg">
+                    <h3 className="text-lg sm:text-xl font-bold text-green-800 mb-3">To Destination</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          Method: {tripPlan.transportation.toDestination.method}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">{tripPlan.transportation.toDestination.details}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          Cost: {formatCurrency(tripPlan.transportation.toDestination.cost)}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Duration: {tripPlan.transportation.toDestination.duration}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 p-3 bg-green-100 rounded">
+                      <p className="text-sm text-green-800">💡 {tripPlan.transportation.toDestination.bookingTips}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 sm:p-6 rounded-lg">
+                    <h3 className="text-lg sm:text-xl font-bold text-blue-800 mb-3">Local Transportation</h3>
+                    <div className="space-y-3">
+                      {tripPlan.transportation.localTransport.map((transport, index) => (
+                        <div key={index} className="bg-white p-3 sm:p-4 rounded border">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="font-semibold text-gray-900">{transport.method}</p>
+                              <p className="text-sm text-blue-600">{transport.tips}</p>
+                            </div>
+                            <Badge variant="outline" className="text-xs mt-2 sm:mt-0">
+                              {formatCurrency(transport.cost)}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-orange-50 p-4 sm:p-6 rounded-lg">
+                    <h3 className="text-lg sm:text-xl font-bold text-orange-800 mb-3">Return Journey</h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          Method: {tripPlan.transportation.fromDestination.method}
+                        </p>
+                        <p className="text-sm text-orange-600 mt-1">
+                          {tripPlan.transportation.fromDestination.bookingTips}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs mt-2 sm:mt-0">
+                        {formatCurrency(tripPlan.transportation.fromDestination.cost)}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="budget">
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader className="bg-emerald-50">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-emerald-600" />
+                    Budget Breakdown
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+                    {Object.entries(tripPlan.budgetBreakdown)
+                      .filter(([key]) => !["total", "dailyAverage", "budgetTips"].includes(key))
+                      .map(([category, amount]) => (
+                        <div key={category} className="bg-emerald-50 p-4 rounded-lg text-center">
+                          <h4 className="font-semibold text-gray-900 capitalize mb-2 text-sm sm:text-base">
+                            {category}
+                          </h4>
+                          <p className="text-lg sm:text-xl font-bold text-emerald-600">
+                            {formatCurrency(amount as string)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+
+                  <div className="bg-slate-800 text-white p-4 sm:p-6 rounded-lg mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-bold mb-2">Total Trip Cost</h3>
+                        <p className="text-2xl sm:text-3xl font-bold text-emerald-400">
+                          {formatCurrency(tripPlan.budgetBreakdown.total)}
+                        </p>
+                      </div>
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-bold mb-2">Daily Average</h3>
+                        <p className="text-2xl sm:text-3xl font-bold text-blue-400">
+                          {formatCurrency(tripPlan.budgetBreakdown.dailyAverage)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 p-4 sm:p-6 rounded-lg">
+                    <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mb-3">Money-Saving Tips</h3>
+                    <ul className="space-y-2">
+                      {tripPlan.budgetBreakdown.budgetTips.map((tip, index) => (
+                        <li key={index} className="flex items-start text-sm sm:text-base">
+                          <DollarSign className="h-4 w-4 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="text-yellow-800">{tip}</span>
                         </li>
                       ))}
                     </ul>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <Card className="bg-white shadow-lg border-0 rounded-2xl">
-                  <CardHeader className="p-6">
-                    <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-red-600" />
-                      Emergency Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="font-semibold text-slate-800 mb-2">Emergency Contacts</h4>
-                          <div className="text-sm space-y-1">
-                            <div>
-                              Local Emergency:{" "}
-                              <span className="font-semibold text-red-600">
-                                {tripPlan.emergencyInfo.localEmergency}
+            <TabsContent value="packing">
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader className="bg-indigo-50">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <Package className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-indigo-600" />
+                    Packing Checklist
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    {Object.entries(tripPlan.packingList).map(([category, items]) => (
+                      <div key={category} className="bg-indigo-50 p-4 rounded-lg">
+                        <h3 className="text-base sm:text-lg font-bold text-indigo-800 mb-3 capitalize">
+                          {category.replace(/([A-Z])/g, " $1").trim()}
+                        </h3>
+                        <div className="space-y-2">
+                          {(items as string[]).map((item, index) => (
+                            <label key={index} className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={checkedItems[`${category}-${index}`] || false}
+                                onChange={() => toggleCheckItem(category, index)}
+                                className="mr-2 sm:mr-3 h-4 w-4 text-indigo-600 rounded"
+                              />
+                              <span
+                                className={`text-sm sm:text-base ${
+                                  checkedItems[`${category}-${index}`] ? "line-through text-gray-500" : "text-gray-700"
+                                }`}
+                              >
+                                {item}
                               </span>
-                            </div>
-                            <div>
-                              Hospital: <span className="font-semibold">{tripPlan.emergencyInfo.nearestHospital}</span>
-                            </div>
-                            <div>
-                              Embassy: <span className="font-semibold">{tripPlan.emergencyInfo.embassy}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-slate-800 mb-2">Important Contacts</h4>
-                          <ul className="text-sm space-y-1">
-                            {tripPlan.emergencyInfo.importantContacts.map((contact, index) => (
-                              <li key={index}>• {contact}</li>
-                            ))}
-                          </ul>
+                            </label>
+                          ))}
                         </div>
                       </div>
-                      <div>
-                        <h4 className="font-semibold text-slate-800 mb-2">Safety Tips</h4>
-                        <ul className="text-sm space-y-2">
-                          {tripPlan.emergencyInfo.safetyTips.map((tip, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <AlertTriangle className="h-3 w-3 text-orange-600 mt-1 flex-shrink-0" />
-                              {tip}
-                            </li>
-                          ))}
-                        </ul>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tips">
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader className="bg-yellow-50">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <Lightbulb className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-yellow-600" />
+                    Important Travel Tips
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-3 sm:space-y-4">
+                    {tripPlan.importantTips.map((tip, index) => (
+                      <div key={index} className="flex items-start bg-yellow-50 p-3 sm:p-4 rounded-lg">
+                        <div className="bg-yellow-200 rounded-full p-1 mt-1 mr-3 flex-shrink-0">
+                          <span className="text-yellow-800 font-bold text-xs sm:text-sm">{index + 1}</span>
+                        </div>
+                        <p className="text-gray-700 flex-1 text-sm sm:text-base">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="emergency">
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader className="bg-red-50">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <Shield className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-red-600" />
+                    Emergency Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <h3 className="font-bold text-red-800 mb-2 flex items-center text-base sm:text-lg">
+                        <Phone className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                        Emergency Contacts
+                      </h3>
+                      <div className="space-y-2 text-sm sm:text-base">
+                        <p className="text-red-700">
+                          <strong>Emergency:</strong> {tripPlan.emergencyInfo.localEmergency}
+                        </p>
+                        <p className="text-red-700">
+                          <strong>Hospital:</strong> {tripPlan.emergencyInfo.nearestHospital}
+                        </p>
+                        <p className="text-red-700">
+                          <strong>Embassy:</strong> {tripPlan.emergencyInfo.embassy}
+                        </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
 
-                {tripPlan.bookingChecklist && (
-                  <Card className="bg-white shadow-lg border-0 rounded-2xl">
-                    <CardHeader className="p-6">
-                      <CardTitle className="text-xl font-bold text-slate-800">Booking Checklist</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6 pt-0">
-                      <div className="space-y-3">
-                        {tripPlan.bookingChecklist.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                            <div className="flex items-center gap-3">
-                              <div className="w-5 h-5 border border-slate-300 rounded flex-shrink-0"></div>
-                              <span className="text-sm font-medium text-slate-800">{item.item}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                variant={
-                                  item.priority === "High"
-                                    ? "destructive"
-                                    : item.priority === "Medium"
-                                      ? "default"
-                                      : "secondary"
-                                }
-                              >
-                                {item.priority}
-                              </Badge>
-                              <span className="text-xs text-slate-600">{item.deadline}</span>
-                            </div>
-                          </div>
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <h3 className="font-bold text-orange-800 mb-2 text-base sm:text-lg">Important Contacts</h3>
+                      <ul className="space-y-1 text-sm sm:text-base">
+                        {tripPlan.emergencyInfo.importantContacts.map((contact, index) => (
+                          <li key={index} className="text-orange-700">
+                            • {contact}
+                          </li>
                         ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 sm:p-6 rounded-lg">
+                    <h3 className="font-bold text-blue-800 mb-3 text-base sm:text-lg">Safety Tips</h3>
+                    <ul className="space-y-2">
+                      {tripPlan.emergencyInfo.safetyTips.map((tip, index) => (
+                        <li key={index} className="flex items-start text-sm sm:text-base">
+                          <Shield className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="text-blue-800">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="checklist">
+              <Card className="shadow-lg border-0 bg-white">
+                <CardHeader className="bg-green-50">
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-green-600" />
+                    Booking Checklist
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-3 sm:space-y-4">
+                    {tripPlan.bookingChecklist.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between bg-green-50 p-3 sm:p-4 rounded-lg">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={checkedItems[`checklist-${index}`] || false}
+                            onChange={() => toggleCheckItem("checklist", index)}
+                            className="mr-3 h-4 w-4 sm:h-5 sm:w-5 text-green-600 rounded"
+                          />
+                          <div>
+                            <p
+                              className={`font-semibold text-sm sm:text-base ${
+                                checkedItems[`checklist-${index}`] ? "line-through text-gray-500" : "text-gray-900"
+                              }`}
+                            >
+                              {item.item}
+                            </p>
+                            <p className="text-xs sm:text-sm text-gray-600">Deadline: {item.deadline}</p>
+                          </div>
+                        </div>
+                        <Badge
+                          variant={
+                            item.priority === "High"
+                              ? "destructive"
+                              : item.priority === "Medium"
+                                ? "default"
+                                : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {item.priority}
+                        </Badge>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
