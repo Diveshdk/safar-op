@@ -1,29 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
   },
 })
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    console.log("Hotels API: Starting request processing")
+    const { searchParams } = new URL(request.url)
+    const city = searchParams.get("city")
 
-    const body = await request.json()
-    console.log("Hotels API: Request body:", body)
-
-    const { city } = body
+    console.log("Hotels API called for city:", city)
 
     if (!city) {
-      console.log("Hotels API: Missing city parameter")
-      return NextResponse.json({ error: "City is required" }, { status: 400 })
+      console.log("No city provided, returning demo data")
+      return NextResponse.json(getDemoHotels())
     }
 
-    console.log("Hotels API: Searching for hotels in city:", city)
-
+    // Query hotels from database
     const { data: hotels, error } = await supabase
       .from("hotels")
       .select("*")
@@ -32,67 +29,85 @@ export async function POST(request: NextRequest) {
       .limit(20)
 
     if (error) {
-      console.error("Hotels API: Database error:", error)
-    } else {
-      console.log("Hotels API: Database query successful, found hotels:", hotels?.length || 0)
+      console.error("Database error:", error)
+      console.log("Falling back to demo data")
+      return NextResponse.json(getDemoHotels(city))
     }
 
-    if (hotels && hotels.length > 0) {
-      console.log("Hotels API: Returning database hotels:", hotels.length)
-      return NextResponse.json({ hotels })
+    console.log(`Found ${hotels?.length || 0} hotels in database`)
+
+    // If no hotels found in database, return demo data
+    if (!hotels || hotels.length === 0) {
+      console.log("No hotels found in database, returning demo data")
+      return NextResponse.json(getDemoHotels(city))
     }
 
-    console.log("Hotels API: No hotels found in database, returning demo data")
+    // Transform database data to match expected format
+    const transformedHotels = hotels.map((hotel) => ({
+      id: hotel.id,
+      name: hotel.name,
+      description: hotel.description,
+      city: hotel.city,
+      address: hotel.address,
+      price: hotel.price,
+      rooms: hotel.rooms,
+      imageUrl: hotel.image_url,
+      amenities: hotel.amenities,
+      ownerId: hotel.owner_id,
+      createdAt: hotel.created_at,
+    }))
 
-    const demoHotels = [
-      {
-        id: "demo1",
-        name: "Sunset Paradise Resort",
-        price: 5500,
-        city: city,
-        description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
-        image_url: "/placeholder.svg?height=240&width=400",
-        rating: 4.2,
-        amenities: ["WiFi", "Pool", "Breakfast", "Beach Access"],
-        total_rooms: 50,
-        available_rooms: 25,
-      },
-      {
-        id: "demo2",
-        name: "City Center Hotel",
-        price: 8500,
-        city: city,
-        description: "Modern amenities • Business center • Gym • Restaurant",
-        image_url: "/placeholder.svg?height=240&width=400",
-        rating: 4.5,
-        amenities: ["WiFi", "Gym", "Restaurant", "Business Center"],
-        total_rooms: 75,
-        available_rooms: 30,
-      },
-      {
-        id: "demo3",
-        name: "Heritage Palace",
-        price: 12000,
-        city: city,
-        description: "Luxury suites • Spa services • Fine dining • Heritage architecture",
-        image_url: "/placeholder.svg?height=240&width=400",
-        rating: 4.8,
-        amenities: ["WiFi", "Spa", "Fine Dining", "Heritage"],
-        total_rooms: 100,
-        available_rooms: 40,
-      },
-    ]
-
-    console.log("Hotels API: Returning demo hotels:", demoHotels.length)
-    return NextResponse.json({ hotels: demoHotels })
+    console.log("Returning transformed hotels:", transformedHotels.length)
+    return NextResponse.json(transformedHotels)
   } catch (error) {
-    console.error("Hotels API: Unexpected error:", error)
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    console.error("Hotels API error:", error)
+    console.log("Error occurred, falling back to demo data")
+    return NextResponse.json(getDemoHotels())
   }
+}
+
+function getDemoHotels(city?: string) {
+  const cityName = city || "Your City"
+
+  return [
+    {
+      id: "demo-1",
+      name: `Grand ${cityName} Hotel`,
+      description: `Luxury hotel in the heart of ${cityName} with world-class amenities and exceptional service.`,
+      city: cityName,
+      address: `123 Main Street, ${cityName}`,
+      price: 8500,
+      rooms: 50,
+      imageUrl: "/placeholder.jpg",
+      amenities: "WiFi, Pool, Spa, Restaurant, Gym, Room Service",
+      ownerId: "demo",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "demo-2",
+      name: `${cityName} Business Inn`,
+      description: `Modern business hotel perfect for corporate travelers visiting ${cityName}.`,
+      city: cityName,
+      address: `456 Business District, ${cityName}`,
+      price: 4500,
+      rooms: 30,
+      imageUrl: "/placeholder.jpg",
+      amenities: "WiFi, Business Center, Conference Rooms, Restaurant",
+      ownerId: "demo",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "demo-3",
+      name: `Budget Stay ${cityName}`,
+      description: `Affordable and comfortable accommodation for budget-conscious travelers in ${cityName}.`,
+      city: cityName,
+      address: `789 Budget Lane, ${cityName}`,
+      price: 2200,
+      rooms: 25,
+      imageUrl: "/placeholder.jpg",
+      amenities: "WiFi, AC, TV, 24/7 Reception",
+      ownerId: "demo",
+      createdAt: new Date().toISOString(),
+    },
+  ]
 }

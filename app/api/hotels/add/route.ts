@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { auth } from "@clerk/nextjs/server"
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
@@ -11,75 +11,65 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("Add Hotel API: Starting request processing")
+    console.log("Add hotel API called")
 
+    // Get user authentication
     const { userId } = await auth()
+
     if (!userId) {
-      console.log("Add Hotel API: User not authenticated")
+      console.log("User not authenticated")
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
+    console.log("User authenticated:", userId)
+
     const body = await request.json()
-    console.log("Add Hotel API: Request body:", body)
+    console.log("Request body:", body)
 
-    const {
-      name,
-      description,
-      city,
-      address,
-      latitude,
-      longitude,
-      price_per_night,
-      image_url,
-      amenities,
-      total_rooms,
-    } = body
+    const { name, description, city, address, price, rooms, imageUrl, amenities } = body
 
-    if (!name || !description || !city || !price_per_night) {
-      console.log("Add Hotel API: Missing required fields")
-      return NextResponse.json({ error: "Name, description, city, and price per night are required" }, { status: 400 })
-    }
-
-    const hotelData = {
-      owner_id: userId,
-      name: name.trim(),
-      description: description.trim(),
-      city: city.trim(),
-      address: address?.trim() || null,
-      latitude: latitude || null,
-      longitude: longitude || null,
-      price: Number.parseInt(price_per_night),
-      image_url: image_url?.trim() || "/placeholder.svg?height=240&width=400",
-      amenities: Array.isArray(amenities) ? amenities : [],
-      rating: 4.0,
-      total_rooms: Number.parseInt(total_rooms) || 1,
-      available_rooms: Number.parseInt(total_rooms) || 1,
-    }
-
-    console.log("Add Hotel API: Prepared hotel data:", hotelData)
-
-    const { data: hotel, error } = await supabase.from("hotels").insert([hotelData]).select().single()
-
-    if (error) {
-      console.error("Add Hotel API: Database error:", error)
+    // Validate required fields
+    if (!name || !description || !city || !address || !price) {
+      console.log("Missing required fields")
       return NextResponse.json(
-        {
-          error: "Failed to add hotel",
-          details: error.message,
-        },
-        { status: 500 },
+        { error: "Missing required fields: name, description, city, address, price" },
+        { status: 400 },
       )
     }
 
-    console.log("Add Hotel API: Hotel added successfully:", hotel.id)
+    // Prepare hotel data
+    const hotelData = {
+      name: name.trim(),
+      description: description.trim(),
+      city: city.trim(),
+      address: address.trim(),
+      price: Number(price),
+      rooms: Number(rooms) || 10,
+      image_url: imageUrl?.trim() || "/placeholder.jpg",
+      amenities: amenities?.trim() || "WiFi, AC, TV",
+      owner_id: userId,
+      created_at: new Date().toISOString(),
+    }
+
+    console.log("Prepared hotel data:", hotelData)
+
+    // Insert hotel into database
+    const { data, error } = await supabase.from("hotels").insert([hotelData]).select().single()
+
+    if (error) {
+      console.error("Database error:", error)
+      return NextResponse.json({ error: "Failed to add hotel", details: error.message }, { status: 500 })
+    }
+
+    console.log("Hotel added successfully:", data)
 
     return NextResponse.json({
       success: true,
       message: "Hotel added successfully",
-      hotel,
+      hotel: data,
     })
   } catch (error) {
-    console.error("Add Hotel API: Unexpected error:", error)
+    console.error("Add hotel error:", error)
     return NextResponse.json(
       {
         error: "Internal server error",
