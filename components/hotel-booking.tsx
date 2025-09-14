@@ -1,174 +1,130 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react"
+import { Hotel, BedDouble, Loader2, CalendarDays, MapPin } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Star, MapPin, Wifi, Car, Coffee, Search } from "lucide-react"
-import { AddHotel } from "./add-hotel"
-import { useToast } from "@/hooks/use-toast"
 
-interface Hotel {
+interface HotelInfo {
   id: string
   name: string
-  location: string
+  price: number
+  city: string
   description: string
-  price_range: string
-  amenities: string[]
-  rating: number
   image_url?: string
-  created_at: string
 }
 
-export function HotelBooking() {
-  const [hotels, setHotels] = useState<Hotel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchLocation, setSearchLocation] = useState("")
-  const { toast } = useToast()
+interface Props {
+  currentLocation: { lat: number; lng: number; name: string; city: string } | null
+  userId: string
+}
 
-  const fetchHotels = async (location?: string) => {
+/**
+ * Minimal hotel-booking list.
+ * Later you can add CRUD endpoints (`/api/hotels`) and payment integration.
+ */
+export default function HotelBooking({ currentLocation, userId }: Props) {
+  const [hotels, setHotels] = useState<HotelInfo[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadHotels()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLocation?.city])
+
+  const loadHotels = async () => {
+    if (!currentLocation?.city) {
+      setHotels([])
+      setLoading(false)
+      return
+    }
     try {
       setLoading(true)
-      const url = location ? `/api/hotels?location=${encodeURIComponent(location)}` : "/api/hotels"
-
-      const response = await fetch(url)
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch hotels")
-      }
-
-      setHotels(data.hotels || [])
-    } catch (error) {
-      console.error("Error fetching hotels:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load hotels",
-        variant: "destructive",
+      const res = await fetch("/api/hotels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city: currentLocation.city }),
       })
+      const data = await res.json()
+      setHotels(data.hotels ?? [])
+    } catch {
+      // fallback demo hotel
+      setHotels([
+        {
+          id: "demo1",
+          name: "Sunset Paradise Resort",
+          price: 5500, // Changed from 79 to realistic INR price
+          city: currentLocation!.city,
+          description: "Cozy rooms • Free breakfast • Near beach • Swimming pool",
+          image_url: "/placeholder.svg?height=240&width=400",
+        },
+        {
+          id: "demo2",
+          name: "City Center Hotel",
+          price: 8500, // Changed from 120 to realistic INR price
+          city: currentLocation!.city,
+          description: "Modern amenities • Business center • Gym • Restaurant",
+          image_url: "/placeholder.svg?height=240&width=400",
+        },
+      ])
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchHotels()
-  }, [])
-
-  const handleSearch = () => {
-    fetchHotels(searchLocation)
+  if (!currentLocation) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <MapPin className="h-10 w-10 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-600">Set location to view available hotels</p>
+        </CardContent>
+      </Card>
+    )
   }
 
-  const getAmenityIcon = (amenity: string) => {
-    const amenityLower = amenity.toLowerCase()
-    if (amenityLower.includes("wifi") || amenityLower.includes("internet")) {
-      return <Wifi className="w-4 h-4" />
-    }
-    if (amenityLower.includes("parking") || amenityLower.includes("car")) {
-      return <Car className="w-4 h-4" />
-    }
-    if (amenityLower.includes("breakfast") || amenityLower.includes("coffee")) {
-      return <Coffee className="w-4 h-4" />
-    }
-    return null
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading hotels in {currentLocation.city}…</p>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Hotel Booking</h1>
-        <p className="text-gray-600">Find and book the perfect accommodation for your stay</p>
-      </div>
+      <Card>
+        <CardHeader className="flex items-center">
+          <Hotel className="h-5 w-5 mr-2 text-orange-500" />
+          <CardTitle className="text-xl">Hotels in {currentLocation.city}</CardTitle>
+        </CardHeader>
+      </Card>
 
-      <AddHotel />
-
-      <div className="flex items-center space-x-2">
-        <Input
-          placeholder="Search by location..."
-          value={searchLocation}
-          onChange={(e) => setSearchLocation(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-        />
-        <Button onClick={handleSearch}>
-          <Search className="w-4 h-4 mr-2" />
-          Search
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-8">
-          <p>Loading hotels...</p>
-        </div>
-      ) : hotels.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No hotels found. Be the first to add one!</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {hotels.map((hotel) => (
-            <Card key={hotel.id} className="overflow-hidden">
-              {hotel.image_url && (
-                <div className="h-48 bg-gray-200">
-                  <img
-                    src={hotel.image_url || "/placeholder.svg"}
-                    alt={hotel.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none"
-                    }}
-                  />
-                </div>
-              )}
-              <CardHeader>
-                <CardTitle className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">{hotel.name}</h3>
-                    <div className="flex items-center text-sm text-gray-600 mt-1">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      {hotel.location}
-                    </div>
-                  </div>
-                  {hotel.rating > 0 && (
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="ml-1 text-sm">{hotel.rating}</span>
-                    </div>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 text-sm mb-3">{hotel.description}</p>
-
-                <div className="mb-3">
-                  <p className="font-semibold text-green-600">{hotel.price_range}</p>
-                </div>
-
-                {hotel.amenities && hotel.amenities.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium mb-2">Amenities:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {hotel.amenities.slice(0, 4).map((amenity) => (
-                        <Badge key={amenity} variant="outline" className="text-xs flex items-center gap-1">
-                          {getAmenityIcon(amenity)}
-                          {amenity}
-                        </Badge>
-                      ))}
-                      {hotel.amenities.length > 4 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{hotel.amenities.length - 4} more
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <Button className="w-full">Book Now</Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {hotels.map((h) => (
+        <Card key={h.id} className="overflow-hidden">
+          {h.image_url && (
+            <img src={h.image_url || "/placeholder.svg"} alt={h.name} className="w-full h-40 object-cover" />
+          )}
+          <CardHeader className="flex items-center justify-between pb-2">
+            <CardTitle className="flex items-center">
+              <BedDouble className="h-4 w-4 mr-2 text-orange-500" />
+              {h.name}
+            </CardTitle>
+            <Badge className="bg-green-100 text-green-700 font-medium">₹{h.price}/night</Badge>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-gray-700 text-sm leading-relaxed">{h.description}</p>
+            <Button size="sm" className="bg-gradient-to-r from-orange-500 to-pink-500 hover:opacity-90 text-white">
+              <CalendarDays className="h-4 w-4 mr-1" />
+              Book Now
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   )
 }

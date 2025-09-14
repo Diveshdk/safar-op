@@ -2,256 +2,277 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const { query } = await request.json()
+    const { query, currentLocation } = await request.json()
 
     if (!query) {
       return NextResponse.json({ error: "Search query is required" }, { status: 400 })
     }
 
-    const geminiApiKey = process.env.GEMINI_API_KEY
-    if (!geminiApiKey) {
-      console.error("Gemini API key not found in environment variables")
-      return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 })
-    }
+    // Enhanced Gemini prompt for place exploration
+    const prompt = `You are an expert travel guide. Provide comprehensive information about "${query}" as a travel destination.
 
-    console.log("Starting place search for:", query)
-
-    // Enhanced prompt for place search
-    const prompt = `You are a travel expert. Provide detailed information about "${query}" as a travel destination.
-
-Please respond with a JSON object containing comprehensive travel information:
+Create detailed travel information in JSON format with these sections:
 
 {
-  "name": "${query}",
-  "description": "Detailed description of the place (2-3 sentences)",
-  "highlights": ["Top attraction 1", "Top attraction 2", "Top attraction 3", "Top attraction 4"],
-  "bestTimeToVisit": "Best months/season to visit",
-  "averageCost": "₹X,XXX per day",
-  "duration": "Recommended stay duration",
-  "activities": [
+  "destination": {
+    "name": "${query}",
+    "description": "Detailed description of the place",
+    "highlights": ["Top attraction 1", "Top attraction 2", "Top attraction 3"],
+    "bestTimeToVisit": "Best months to visit with weather info",
+    "duration": "Recommended stay duration",
+    "difficulty": "Easy/Moderate/Challenging",
+    "category": "Beach/Mountain/City/Heritage/Adventure"
+  },
+  "attractions": [
     {
-      "name": "Activity name",
-      "description": "Activity description",
-      "cost": "₹XXX",
-      "duration": "X hours"
+      "name": "Specific attraction name",
+      "description": "Detailed description",
+      "location": "Exact location/address",
+      "entryFee": "₹XXX or Free",
+      "timings": "Opening hours",
+      "bestTimeToVisit": "Best time of day",
+      "tips": "Practical tips for visiting"
     }
   ],
-  "cuisine": ["Local dish 1", "Local dish 2", "Local dish 3"],
+  "accommodation": [
+    {
+      "name": "Specific hotel/resort name",
+      "type": "Hotel/Resort/Hostel/Homestay",
+      "location": "Area/address",
+      "priceRange": "₹XXX - ₹XXX per night",
+      "amenities": ["WiFi", "Pool", "Restaurant"],
+      "rating": "4.5/5",
+      "bookingTips": "When and how to book"
+    }
+  ],
+  "food": [
+    {
+      "dish": "Local specialty dish name",
+      "description": "What it is and taste",
+      "restaurant": "Specific restaurant name",
+      "location": "Restaurant location",
+      "price": "₹XXX",
+      "tips": "When to eat, how to order"
+    }
+  ],
   "transportation": {
-    "howToReach": "How to reach this destination",
-    "localTransport": "Local transportation options"
+    "howToReach": {
+      "byAir": "Nearest airport and flight info",
+      "byTrain": "Nearest railway station and train info",
+      "byRoad": "Bus/car routes and distances",
+      "cost": "₹XXX - ₹XXX"
+    },
+    "localTransport": [
+      {
+        "method": "Auto/Bus/Taxi/Walking",
+        "cost": "₹XXX per day",
+        "tips": "How to use, where to find"
+      }
+    ]
   },
-  "accommodation": {
-    "budget": "₹X,XXX/night",
-    "midRange": "₹X,XXX/night", 
-    "luxury": "₹X,XXX/night"
+  "activities": [
+    {
+      "name": "Specific activity name",
+      "description": "What you'll do",
+      "duration": "X hours",
+      "cost": "₹XXX",
+      "difficulty": "Easy/Moderate/Hard",
+      "bestTime": "Morning/Afternoon/Evening",
+      "tips": "What to bring, how to prepare"
+    }
+  ],
+  "budget": {
+    "budget": "₹XXX - ₹XXX per day",
+    "midRange": "₹XXX - ₹XXX per day",
+    "luxury": "₹XXX - ₹XXX per day",
+    "breakdown": {
+      "accommodation": "₹XXX",
+      "food": "₹XXX",
+      "transport": "₹XXX",
+      "activities": "₹XXX"
+    }
   },
-  "tips": ["Travel tip 1", "Travel tip 2", "Travel tip 3"],
-  "weather": "Current weather and what to expect",
-  "safety": "Safety information and precautions"
+  "packingList": {
+    "essentials": ["Item 1", "Item 2"],
+    "clothing": ["Weather appropriate items"],
+    "gear": ["Activity specific gear"],
+    "documents": ["Required documents"]
+  },
+  "tips": [
+    "Local custom tip",
+    "Money/bargaining tip",
+    "Safety tip",
+    "Cultural etiquette tip",
+    "Photography tip"
+  ],
+  "weather": {
+    "current": "Current season weather",
+    "yearRound": "Weather throughout the year",
+    "whatToPack": "Weather-specific packing advice"
+  },
+  "safety": {
+    "general": ["General safety tip 1", "General safety tip 2"],
+    "emergency": "Emergency contact numbers",
+    "health": "Health precautions if any"
+  }
 }`
 
-    try {
-      // Call Gemini API with proper timeout and error handling
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout
-
-      console.log("Calling Gemini API for place search...")
-
-      const geminiResponse = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-goog-api-key": geminiApiKey,
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: prompt,
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 4096,
-            },
-            safetySettings: [
-              {
-                category: "HARM_CATEGORY_HARASSMENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_HATE_SPEECH",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-            ],
-          }),
-          signal: controller.signal,
+    // Call Gemini API
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      )
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192,
+          },
+        }),
+      },
+    )
 
-      clearTimeout(timeoutId)
+    if (!geminiResponse.ok) {
+      throw new Error(`Gemini API error: ${geminiResponse.status}`)
+    }
 
-      console.log("Gemini API response status:", geminiResponse.status)
+    const geminiData = await geminiResponse.json()
+    let placeInfo
 
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text()
-        console.error("Gemini API error response:", errorText)
-        throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`)
+    try {
+      // Extract JSON from Gemini response
+      const responseText = geminiData.candidates[0].content.parts[0].text
+      console.log("Gemini place search response:", responseText)
+
+      // Try to extract JSON from the response
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        placeInfo = JSON.parse(jsonMatch[0])
+      } else {
+        throw new Error("No JSON found in response")
       }
-
-      const geminiData = await geminiResponse.json()
-      console.log("Gemini API response received, processing...")
-
-      let placeInfo
-
-      try {
-        // Extract JSON from Gemini response
-        const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
-
-        if (!responseText) {
-          console.error("No response text from Gemini API")
-          throw new Error("No response text from Gemini API")
-        }
-
-        console.log("Gemini response text length:", responseText.length)
-
-        // Try to extract JSON from the response
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          placeInfo = JSON.parse(jsonMatch[0])
-          console.log("Successfully parsed Gemini response")
-        } else {
-          console.error("No JSON found in Gemini response")
-          throw new Error("No JSON found in response")
-        }
-      } catch (parseError) {
-        console.error("JSON parsing error:", parseError)
-        console.log("Raw Gemini response:", geminiData)
-
-        // Enhanced fallback place info
-        placeInfo = {
+    } catch (parseError) {
+      console.error("JSON parsing error:", parseError)
+      // Fallback place info
+      placeInfo = {
+        destination: {
           name: query,
-          description: `${query} is a beautiful destination with rich culture, stunning landscapes, and memorable experiences waiting to be discovered.`,
-          highlights: [
-            "Historic landmarks and monuments",
-            "Local markets and shopping areas",
-            "Cultural sites and museums",
-            "Natural attractions and scenic spots",
-          ],
-          bestTimeToVisit: "October to March (pleasant weather)",
-          averageCost: "₹2,500 per day",
-          duration: "3-4 days",
-          activities: [
-            {
-              name: "Sightseeing tour",
-              description: "Explore the main attractions and landmarks",
-              cost: "₹1,500",
-              duration: "4-6 hours",
-            },
-            {
-              name: "Cultural experience",
-              description: "Immerse in local culture and traditions",
-              cost: "₹800",
-              duration: "2-3 hours",
-            },
-            {
-              name: "Local cuisine tour",
-              description: "Taste authentic local dishes and specialties",
-              cost: "₹1,200",
-              duration: "3-4 hours",
-            },
-          ],
-          cuisine: ["Local specialty dishes", "Traditional sweets", "Regional delicacies"],
-          transportation: {
-            howToReach: "Well connected by air, rail, and road networks",
-            localTransport: "Taxis, buses, and auto-rickshaws available",
-          },
-          accommodation: {
-            budget: "₹1,500/night",
-            midRange: "₹3,500/night",
-            luxury: "₹8,000/night",
-          },
-          tips: [
-            "Book accommodations in advance during peak season",
-            "Try local street food for authentic flavors",
-            "Respect local customs and traditions",
-            "Carry cash as some places may not accept cards",
-          ],
-          weather: "Pleasant weather with moderate temperatures",
-          safety: "Generally safe for tourists. Follow standard travel precautions.",
-        }
-      }
-
-      console.log("Place search completed successfully")
-      return NextResponse.json(placeInfo)
-    } catch (geminiError) {
-      console.error("Gemini API error:", geminiError)
-
-      if (geminiError.name === "AbortError") {
-        console.error("Gemini API request timed out")
-        return NextResponse.json(
+          description: `${query} is a beautiful destination with rich culture and stunning attractions.`,
+          highlights: ["Local attractions", "Cultural experiences", "Natural beauty"],
+          bestTimeToVisit: "October to March",
+          duration: "2-3 days",
+          difficulty: "Easy",
+          category: "General",
+        },
+        attractions: [
           {
-            error: "Request timed out. Please try again.",
-            details: "The AI service took too long to respond",
+            name: `Main attraction in ${query}`,
+            description: "A must-visit landmark with historical significance",
+            location: `${query} city center`,
+            entryFee: "₹50",
+            timings: "9:00 AM - 6:00 PM",
+            bestTimeToVisit: "Morning hours",
+            tips: "Visit early to avoid crowds",
           },
-          { status: 408 },
-        )
-      }
-
-      // Return fallback data on API error
-      const fallbackInfo = {
-        name: query,
-        description: `${query} is a wonderful destination with many attractions and experiences to offer visitors.`,
-        highlights: [
-          "Popular tourist attractions",
-          "Local cultural sites",
-          "Shopping and dining areas",
-          "Natural beauty spots",
         ],
-        bestTimeToVisit: "October to March",
-        averageCost: "₹2,500 per day",
-        duration: "3-4 days",
+        accommodation: [
+          {
+            name: `Hotel in ${query}`,
+            type: "Hotel",
+            location: `${query} main area`,
+            priceRange: "₹2,000 - ₹5,000 per night",
+            amenities: ["WiFi", "Restaurant", "AC"],
+            rating: "4.0/5",
+            bookingTips: "Book in advance during peak season",
+          },
+        ],
+        food: [
+          {
+            dish: "Local specialty",
+            description: "Traditional dish with authentic flavors",
+            restaurant: `Popular restaurant in ${query}`,
+            location: `${query} market area`,
+            price: "₹200",
+            tips: "Try during lunch hours",
+          },
+        ],
+        transportation: {
+          howToReach: {
+            byAir: `Nearest airport to ${query}`,
+            byTrain: `Railway connectivity to ${query}`,
+            byRoad: `Bus and car routes to ${query}`,
+            cost: "₹500 - ₹2,000",
+          },
+          localTransport: [
+            {
+              method: "Auto rickshaw",
+              cost: "₹100 per day",
+              tips: "Negotiate fare beforehand",
+            },
+          ],
+        },
         activities: [
           {
-            name: "City tour",
-            description: "Explore the main city attractions",
-            cost: "₹1,500",
-            duration: "4-6 hours",
+            name: "Sightseeing",
+            description: "Explore the main attractions",
+            duration: "4 hours",
+            cost: "₹300",
+            difficulty: "Easy",
+            bestTime: "Morning",
+            tips: "Carry water and comfortable shoes",
           },
         ],
-        cuisine: ["Local dishes", "Traditional food", "Street food"],
-        transportation: {
-          howToReach: "Accessible by various transport modes",
-          localTransport: "Local transport options available",
+        budget: {
+          budget: "₹1,500 - ₹2,500 per day",
+          midRange: "₹3,000 - ₹5,000 per day",
+          luxury: "₹8,000 - ₹15,000 per day",
+          breakdown: {
+            accommodation: "₹2,000",
+            food: "₹800",
+            transport: "₹500",
+            activities: "₹700",
+          },
         },
-        accommodation: {
-          budget: "₹1,500/night",
-          midRange: "₹3,500/night",
-          luxury: "₹8,000/night",
+        packingList: {
+          essentials: ["Comfortable shoes", "Water bottle", "Sunscreen"],
+          clothing: ["Light cotton clothes", "Hat", "Sunglasses"],
+          gear: ["Camera", "Power bank"],
+          documents: ["ID proof", "Travel tickets"],
         },
-        tips: ["Plan ahead", "Try local food", "Respect local culture"],
-        weather: "Varies by season",
-        safety: "Follow standard travel safety measures",
+        tips: [
+          "Learn basic local phrases",
+          "Carry cash for small vendors",
+          "Respect local customs",
+          "Stay hydrated",
+          "Keep emergency contacts handy",
+        ],
+        weather: {
+          current: "Pleasant weather for travel",
+          yearRound: "Varies by season",
+          whatToPack: "Light clothes and rain protection",
+        },
+        safety: {
+          general: ["Stay in groups", "Keep valuables safe"],
+          emergency: "Local emergency: 100, 101, 102",
+          health: "Carry basic first aid",
+        },
       }
-
-      return NextResponse.json(fallbackInfo)
     }
+
+    return NextResponse.json(placeInfo)
   } catch (error) {
     console.error("Place search error:", error)
     return NextResponse.json(
