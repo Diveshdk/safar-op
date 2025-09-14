@@ -38,16 +38,6 @@ ${currentLocation ? `- Starting from: ${currentLocation.name}` : ""}
 
 Create a comprehensive trip plan in JSON format with these sections:
 
-1. **Trip Overview**: Summary, best highlights, total estimated cost
-2. **Day-by-Day Itinerary**: Detailed daily plans with specific activities, timings, and locations
-3. **Accommodation**: Specific hotel recommendations with booking details
-4. **Transportation**: Detailed transport options and bookings needed
-5. **Budget Breakdown**: Detailed cost analysis
-6. **Packing List**: Weather-appropriate items to pack
-7. **Important Tips**: Location-specific travel advice
-8. **Emergency Info**: Important contacts and safety information
-
-Format as valid JSON:
 {
   "tripOverview": {
     "destination": "${destination}",
@@ -181,11 +171,12 @@ Format as valid JSON:
       const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout for complex trip planning
 
       const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-goog-api-key": geminiApiKey,
           },
           body: JSON.stringify({
             contents: [

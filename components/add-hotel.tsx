@@ -1,304 +1,225 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
-import { useUser } from "@clerk/nextjs"
-import { Plus, Hotel, Loader2, MapPin, DollarSign, ImageIcon, Users } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { toast } from "sonner"
+import { X, Plus, Star } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
-interface Props {
-  currentLocation: { lat: number; lng: number; name: string; city: string } | null
-  onHotelAdded?: () => void
-}
-
-export default function AddHotel({ currentLocation, onHotelAdded }: Props) {
-  const { user } = useUser()
+export function AddHotel() {
   const [isOpen, setIsOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
+    location: "",
     description: "",
-    city: currentLocation?.city || "",
-    address: "",
-    price_per_night: "",
-    image_url: "",
-    amenities: "",
-    total_rooms: "1",
+    priceRange: "",
+    rating: 0,
+    imageUrl: "",
   })
+  const [amenities, setAmenities] = useState<string[]>([])
+  const [newAmenity, setNewAmenity] = useState("")
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!user) {
-      toast.error("Please sign in to add a hotel")
-      return
-    }
-
-    if (!formData.name.trim() || !formData.description.trim() || !formData.city.trim() || !formData.price_per_night) {
-      toast.error("Please fill in all required fields")
-      return
-    }
+    setIsLoading(true)
 
     try {
-      setLoading(true)
-
-      const amenitiesArray = formData.amenities
-        .split(",")
-        .map((a) => a.trim())
-        .filter((a) => a.length > 0)
-
-      const hotelData = {
-        name: formData.name,
-        description: formData.description,
-        city: formData.city,
-        address: formData.address,
-        latitude: currentLocation?.lat || null,
-        longitude: currentLocation?.lng || null,
-        price_per_night: formData.price_per_night,
-        image_url: formData.image_url || "/placeholder.svg?height=240&width=400",
-        amenities: amenitiesArray,
-        total_rooms: formData.total_rooms,
-      }
-
-      console.log("Adding hotel:", hotelData)
-
       const response = await fetch("/api/hotels/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(hotelData),
+        body: JSON.stringify({
+          ...formData,
+          amenities,
+        }),
       })
 
-      const result = await response.json()
-      console.log("Add hotel response:", result)
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || `HTTP error! status: ${response.status}`)
+        throw new Error(data.error || "Failed to add hotel")
       }
 
-      console.log("Hotel added successfully:", result)
-      toast.success("Hotel added successfully!")
-
-      setFormData({
-        name: "",
-        description: "",
-        city: currentLocation?.city || "",
-        address: "",
-        price_per_night: "",
-        image_url: "",
-        amenities: "",
-        total_rooms: "1",
+      toast({
+        title: "Success!",
+        description: "Hotel added successfully",
       })
 
+      // Reset form
+      setFormData({
+        name: "",
+        location: "",
+        description: "",
+        priceRange: "",
+        rating: 0,
+        imageUrl: "",
+      })
+      setAmenities([])
       setIsOpen(false)
-      onHotelAdded?.()
     } catch (error) {
       console.error("Error adding hotel:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to add hotel")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add hotel",
+        variant: "destructive",
+      })
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  const addAmenity = () => {
+    if (newAmenity.trim() && !amenities.includes(newAmenity.trim())) {
+      setAmenities([...amenities, newAmenity.trim()])
+      setNewAmenity("")
+    }
   }
 
-  if (!user) {
+  const removeAmenity = (amenity: string) => {
+    setAmenities(amenities.filter((a) => a !== amenity))
+  }
+
+  const handleRatingClick = (rating: number) => {
+    setFormData({ ...formData, rating })
+  }
+
+  if (!isOpen) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <Hotel className="h-10 w-10 mx-auto mb-4 text-gray-400" />
-          <p className="text-gray-600 mb-4">Sign in to add your hotel</p>
-        </CardContent>
-      </Card>
+      <Button onClick={() => setIsOpen(true)} className="mb-6">
+        <Plus className="w-4 h-4 mr-2" />
+        Add Hotel
+      </Button>
     )
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Your Hotel
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <Hotel className="h-5 w-5 mr-2 text-orange-500" />
-            Add Your Hotel
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          Add New Hotel
+          <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+            <X className="w-4 h-4" />
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name" className="text-sm font-medium">
-                Hotel Name *
-              </Label>
+              <Label htmlFor="name">Hotel Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter hotel name"
                 required
-                className="mt-1"
               />
             </div>
-
             <div>
-              <Label htmlFor="description" className="text-sm font-medium">
-                Description *
-              </Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                placeholder="Describe your hotel, amenities, and unique features"
+              <Label htmlFor="location">Location *</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="Enter location"
                 required
-                rows={3}
-                className="mt-1"
               />
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="city" className="text-sm font-medium flex items-center">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  City *
-                </Label>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange("city", e.target.value)}
-                  placeholder="Enter city"
-                  required
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="address" className="text-sm font-medium">
-                  Address
-                </Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="Enter full address"
-                  className="mt-1"
-                />
-              </div>
-            </div>
+          <div>
+            <Label htmlFor="description">Description *</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe the hotel"
+              required
+            />
           </div>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="price" className="text-sm font-medium flex items-center">
-                  <DollarSign className="h-4 w-4 mr-1" />
-                  Price per Night (₹) *
-                </Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={formData.price_per_night}
-                  onChange={(e) => handleInputChange("price_per_night", e.target.value)}
-                  placeholder="Enter price in rupees"
-                  required
-                  min="1"
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="rooms" className="text-sm font-medium flex items-center">
-                  <Users className="h-4 w-4 mr-1" />
-                  Total Rooms
-                </Label>
-                <Input
-                  id="rooms"
-                  type="number"
-                  value={formData.total_rooms}
-                  onChange={(e) => handleInputChange("total_rooms", e.target.value)}
-                  placeholder="Number of rooms"
-                  min="1"
-                  className="mt-1"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="image" className="text-sm font-medium flex items-center">
-                <ImageIcon className="h-4 w-4 mr-1" />
-                Image URL
-              </Label>
+              <Label htmlFor="priceRange">Price Range *</Label>
               <Input
-                id="image"
-                value={formData.image_url}
-                onChange={(e) => handleInputChange("image_url", e.target.value)}
-                placeholder="Enter image URL (optional)"
-                className="mt-1"
+                id="priceRange"
+                value={formData.priceRange}
+                onChange={(e) => setFormData({ ...formData, priceRange: e.target.value })}
+                placeholder="e.g., ₹2,000 - ₹5,000/night"
+                required
               />
             </div>
-
             <div>
-              <Label htmlFor="amenities" className="text-sm font-medium">
-                Amenities
-              </Label>
+              <Label htmlFor="imageUrl">Image URL</Label>
               <Input
-                id="amenities"
-                value={formData.amenities}
-                onChange={(e) => handleInputChange("amenities", e.target.value)}
-                placeholder="WiFi, Pool, Gym, Restaurant (comma separated)"
-                className="mt-1"
+                id="imageUrl"
+                value={formData.imageUrl}
+                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                placeholder="Enter image URL"
               />
-              <p className="text-xs text-gray-500 mt-1">Separate amenities with commas</p>
             </div>
           </div>
 
-          {currentLocation && (
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-sm text-blue-700">
-                <MapPin className="h-4 w-4 inline mr-1" />
-                Hotel will be listed in: <Badge variant="secondary">{currentLocation.city}</Badge>
-              </p>
+          <div>
+            <Label>Rating</Label>
+            <div className="flex items-center space-x-1 mt-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button key={star} type="button" onClick={() => handleRatingClick(star)} className="focus:outline-none">
+                  <Star
+                    className={`w-5 h-5 ${star <= formData.rating ? "text-yellow-400 fill-current" : "text-gray-300"}`}
+                  />
+                </button>
+              ))}
+              <span className="ml-2 text-sm text-gray-600">
+                {formData.rating > 0 ? `${formData.rating}/5` : "No rating"}
+              </span>
             </div>
-          )}
+          </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
+          <div>
+            <Label>Amenities</Label>
+            <div className="flex items-center space-x-2 mt-1">
+              <Input
+                value={newAmenity}
+                onChange={(e) => setNewAmenity(e.target.value)}
+                placeholder="Add amenity"
+                onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addAmenity())}
+              />
+              <Button type="button" onClick={addAmenity} size="sm">
+                Add
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {amenities.map((amenity) => (
+                <Badge key={amenity} variant="secondary" className="flex items-center gap-1">
+                  {amenity}
+                  <button type="button" onClick={() => removeAmenity(amenity)} className="ml-1 hover:text-red-500">
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white">
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Adding Hotel...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Hotel
-                </>
-              )}
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Adding..." : "Add Hotel"}
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
   )
 }
