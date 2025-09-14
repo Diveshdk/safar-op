@@ -186,26 +186,28 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
             <div className="bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 text-white p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">{searchResults.name}</h1>
+                  <h1 className="text-3xl font-bold mb-2">{searchResults.name || "Unknown Destination"}</h1>
                   <div className="flex items-center space-x-4 text-blue-100">
                     <span className="flex items-center">
                       <Globe className="h-4 w-4 mr-1" />
-                      {searchResults.country}
+                      {searchResults.country || "Unknown Country"}
                     </span>
                     <span className="flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
-                      {searchResults.region}
+                      {searchResults.region || "Unknown Region"}
                     </span>
                     <span className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
-                      Best: {searchResults.bestTimeToVisit}
+                      Best: {searchResults.bestTimeToVisit || "Year-round"}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
             <CardContent className="p-6">
-              <p className="text-gray-700 text-lg leading-relaxed">{searchResults.description}</p>
+              <p className="text-gray-700 text-lg leading-relaxed">
+                {searchResults.description || "A wonderful destination with many attractions to explore."}
+              </p>
             </CardContent>
           </Card>
 
@@ -232,7 +234,9 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 leading-relaxed">{searchResults.history}</p>
+                    <p className="text-gray-700 leading-relaxed">
+                      {searchResults.history || "This destination has a rich historical background worth exploring."}
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -244,7 +248,9 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 leading-relaxed">{searchResults.culture}</p>
+                    <p className="text-gray-700 leading-relaxed">
+                      {searchResults.culture || "The local culture is vibrant and welcoming to visitors."}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -261,21 +267,29 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                     <div>
                       <h4 className="font-semibold mb-2">Primary Languages:</h4>
                       <div className="flex flex-wrap gap-2">
-                        {searchResults.language.primary.map((lang, index) => (
-                          <Badge key={index} variant="secondary">
-                            {lang}
-                          </Badge>
-                        ))}
+                        {searchResults.language?.primary?.length > 0 ? (
+                          searchResults.language.primary.map((lang, index) => (
+                            <Badge key={index} variant="secondary">
+                              {lang}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="secondary">English</Badge>
+                        )}
                       </div>
                     </div>
                     <div>
                       <h4 className="font-semibold mb-2">Useful Phrases:</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {searchResults.language.phrases.map((phrase, index) => (
-                          <div key={index} className="bg-gray-50 p-2 rounded text-sm">
-                            {phrase}
-                          </div>
-                        ))}
+                        {searchResults.language?.phrases?.length > 0 ? (
+                          searchResults.language.phrases.map((phrase, index) => (
+                            <div key={index} className="bg-gray-50 p-2 rounded text-sm">
+                              {phrase}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="bg-gray-50 p-2 rounded text-sm">Hello - Hello</div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -291,12 +305,19 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {searchResults.funFacts.map((fact, index) => (
-                      <div key={index} className="flex items-start space-x-3">
+                    {searchResults.funFacts?.length > 0 ? (
+                      searchResults.funFacts.map((fact, index) => (
+                        <div key={index} className="flex items-start space-x-3">
+                          <Star className="h-4 w-4 text-yellow-500 mt-1 flex-shrink-0" />
+                          <p className="text-gray-700">{fact}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start space-x-3">
                         <Star className="h-4 w-4 text-yellow-500 mt-1 flex-shrink-0" />
-                        <p className="text-gray-700">{fact}</p>
+                        <p className="text-gray-700">This destination has many interesting features to discover.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -312,12 +333,19 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {searchResults.notablePlaces.map((place, index) => (
-                      <div key={index} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
-                        <h4 className="font-semibold text-lg mb-2 text-gray-900">{place.name}</h4>
-                        <p className="text-gray-600 text-sm">{place.description}</p>
+                    {searchResults.notablePlaces?.length > 0 ? (
+                      searchResults.notablePlaces.map((place, index) => (
+                        <div key={index} className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
+                          <h4 className="font-semibold text-lg mb-2 text-gray-900">{place.name}</h4>
+                          <p className="text-gray-600 text-sm">{place.description}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h4 className="font-semibold text-lg mb-2 text-gray-900">Popular Attractions</h4>
+                        <p className="text-gray-600 text-sm">Various attractions and landmarks to explore.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -333,12 +361,19 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {searchResults.activities.map((activity, index) => (
-                      <div key={index} className="bg-green-50 p-4 rounded-lg hover:bg-green-100 transition-colors">
-                        <h4 className="font-semibold text-lg mb-2 text-green-900">{activity.name}</h4>
-                        <p className="text-green-700 text-sm">{activity.description}</p>
+                    {searchResults.activities?.length > 0 ? (
+                      searchResults.activities.map((activity, index) => (
+                        <div key={index} className="bg-green-50 p-4 rounded-lg hover:bg-green-100 transition-colors">
+                          <h4 className="font-semibold text-lg mb-2 text-green-900">{activity.name}</h4>
+                          <p className="text-green-700 text-sm">{activity.description}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <h4 className="font-semibold text-lg mb-2 text-green-900">Local Activities</h4>
+                        <p className="text-green-700 text-sm">Various activities and experiences available.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -354,12 +389,19 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {searchResults.food.map((dish, index) => (
-                      <div key={index} className="bg-orange-50 p-4 rounded-lg hover:bg-orange-100 transition-colors">
-                        <h4 className="font-semibold text-lg mb-2 text-orange-900">{dish.name}</h4>
-                        <p className="text-orange-700 text-sm">{dish.description}</p>
+                    {searchResults.food?.length > 0 ? (
+                      searchResults.food.map((dish, index) => (
+                        <div key={index} className="bg-orange-50 p-4 rounded-lg hover:bg-orange-100 transition-colors">
+                          <h4 className="font-semibold text-lg mb-2 text-orange-900">{dish.name}</h4>
+                          <p className="text-orange-700 text-sm">{dish.description}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="bg-orange-50 p-4 rounded-lg">
+                        <h4 className="font-semibold text-lg mb-2 text-orange-900">Local Cuisine</h4>
+                        <p className="text-orange-700 text-sm">Delicious local dishes and specialties to try.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -375,24 +417,35 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {searchResults.hotels.map((hotel, index) => (
-                      <div key={index} className="bg-purple-50 p-4 rounded-lg hover:bg-purple-100 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-semibold text-lg text-purple-900">{hotel.name}</h4>
-                          <div className="text-right">
-                            <Badge
-                              variant={
-                                hotel.type === "Luxury" ? "default" : hotel.type === "Budget" ? "secondary" : "outline"
-                              }
-                            >
-                              {hotel.type}
-                            </Badge>
-                            <p className="text-sm font-semibold text-purple-700 mt-1">{hotel.priceRange}</p>
+                    {searchResults.hotels?.length > 0 ? (
+                      searchResults.hotels.map((hotel, index) => (
+                        <div key={index} className="bg-purple-50 p-4 rounded-lg hover:bg-purple-100 transition-colors">
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-semibold text-lg text-purple-900">{hotel.name}</h4>
+                            <div className="text-right">
+                              <Badge
+                                variant={
+                                  hotel.type === "Luxury"
+                                    ? "default"
+                                    : hotel.type === "Budget"
+                                      ? "secondary"
+                                      : "outline"
+                                }
+                              >
+                                {hotel.type}
+                              </Badge>
+                              <p className="text-sm font-semibold text-purple-700 mt-1">{hotel.priceRange}</p>
+                            </div>
                           </div>
+                          <p className="text-purple-700 text-sm">{hotel.description}</p>
                         </div>
-                        <p className="text-purple-700 text-sm">{hotel.description}</p>
+                      ))
+                    ) : (
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <h4 className="font-semibold text-lg text-purple-900">Accommodation Options</h4>
+                        <p className="text-purple-700 text-sm">Various hotels and lodging options available.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -415,24 +468,34 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>Accommodation:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.budget.accommodation}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.budget?.accommodation || "₹1,500-2,500"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Food:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.budget.food}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.budget?.food || "₹800-1,200"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Transport:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.budget.transport}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.budget?.transport || "₹300-500"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Activities:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.budget.activities}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.budget?.activities || "₹500-800"}
+                            </span>
                           </div>
                           <hr className="my-2" />
                           <div className="flex justify-between font-bold text-lg">
                             <span>Total:</span>
-                            <span className="text-green-700">{searchResults.dailyExpenses.budget.total}</span>
+                            <span className="text-green-700">
+                              {searchResults.dailyExpenses?.budget?.total || "₹3,100-5,000"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -443,24 +506,34 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>Accommodation:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.midRange.accommodation}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.midRange?.accommodation || "₹3,000-6,000"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Food:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.midRange.food}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.midRange?.food || "₹1,500-2,500"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Transport:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.midRange.transport}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.midRange?.transport || "₹500-800"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Activities:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.midRange.activities}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.midRange?.activities || "₹1,000-1,500"}
+                            </span>
                           </div>
                           <hr className="my-2" />
                           <div className="flex justify-between font-bold text-lg">
                             <span>Total:</span>
-                            <span className="text-blue-700">{searchResults.dailyExpenses.midRange.total}</span>
+                            <span className="text-blue-700">
+                              {searchResults.dailyExpenses?.midRange?.total || "₹6,000-10,800"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -471,24 +544,34 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>Accommodation:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.luxury.accommodation}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.luxury?.accommodation || "₹8,000-15,000"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Food:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.luxury.food}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.luxury?.food || "₹3,000-5,000"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Transport:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.luxury.transport}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.luxury?.transport || "₹1,000-2,000"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Activities:</span>
-                            <span className="font-semibold">{searchResults.dailyExpenses.luxury.activities}</span>
+                            <span className="font-semibold">
+                              {searchResults.dailyExpenses?.luxury?.activities || "₹2,000-3,000"}
+                            </span>
                           </div>
                           <hr className="my-2" />
                           <div className="flex justify-between font-bold text-lg">
                             <span>Total:</span>
-                            <span className="text-purple-700">{searchResults.dailyExpenses.luxury.total}</span>
+                            <span className="text-purple-700">
+                              {searchResults.dailyExpenses?.luxury?.total || "₹14,000-25,000"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -506,15 +589,21 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                   <CardContent className="space-y-4">
                     <div>
                       <h4 className="font-semibold mb-2">How to Reach:</h4>
-                      <p className="text-gray-700">{searchResults.transportation.howToReach}</p>
+                      <p className="text-gray-700">
+                        {searchResults.transportation?.howToReach || "Accessible by various transportation modes"}
+                      </p>
                     </div>
                     <div>
                       <h4 className="font-semibold mb-2">Local Transport:</h4>
-                      <p className="text-gray-700">{searchResults.transportation.localTransport}</p>
+                      <p className="text-gray-700">
+                        {searchResults.transportation?.localTransport || "Local transport options available"}
+                      </p>
                     </div>
                     <div>
                       <h4 className="font-semibold mb-2">Distance:</h4>
-                      <p className="text-gray-700">{searchResults.transportation.distance}</p>
+                      <p className="text-gray-700">
+                        {searchResults.transportation?.distance || "Distance varies based on starting location"}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -534,22 +623,26 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                     <div className="bg-blue-50 p-4 rounded-lg text-center">
                       <Thermometer className="h-8 w-8 mx-auto mb-2 text-blue-600" />
                       <h4 className="font-semibold mb-1">Temperature</h4>
-                      <p className="text-sm text-gray-700">{searchResults.weather.temperature}</p>
+                      <p className="text-sm text-gray-700">
+                        {searchResults.weather?.temperature || "Moderate temperatures"}
+                      </p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg text-center">
                       <Cloud className="h-8 w-8 mx-auto mb-2 text-gray-600" />
                       <h4 className="font-semibold mb-1">Current Season</h4>
-                      <p className="text-sm text-gray-700">{searchResults.weather.current}</p>
+                      <p className="text-sm text-gray-700">{searchResults.weather?.current || "Varies by season"}</p>
                     </div>
                     <div className="bg-blue-50 p-4 rounded-lg text-center">
                       <Umbrella className="h-8 w-8 mx-auto mb-2 text-blue-600" />
                       <h4 className="font-semibold mb-1">Rainfall</h4>
-                      <p className="text-sm text-gray-700">{searchResults.weather.rainfall}</p>
+                      <p className="text-sm text-gray-700">{searchResults.weather?.rainfall || "Seasonal rainfall"}</p>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg text-center">
                       <Shirt className="h-8 w-8 mx-auto mb-2 text-green-600" />
                       <h4 className="font-semibold mb-1">What to Pack</h4>
-                      <p className="text-sm text-gray-700">{searchResults.weather.clothing}</p>
+                      <p className="text-sm text-gray-700">
+                        {searchResults.weather?.clothing || "Comfortable weather-appropriate clothes"}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -566,14 +659,23 @@ export default function PlaceSearch({ currentLocation }: PlaceSearchProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {searchResults.tips.map((tip, index) => (
-                      <div key={index} className="flex items-start space-x-3 bg-yellow-50 p-4 rounded-lg">
-                        <div className="bg-yellow-200 rounded-full p-1 mt-1">
-                          <span className="text-yellow-800 font-bold text-sm">{index + 1}</span>
+                    {searchResults.tips?.length > 0 ? (
+                      searchResults.tips.map((tip, index) => (
+                        <div key={index} className="flex items-start space-x-3 bg-yellow-50 p-4 rounded-lg">
+                          <div className="bg-yellow-200 rounded-full p-1 mt-1">
+                            <span className="text-yellow-800 font-bold text-sm">{index + 1}</span>
+                          </div>
+                          <p className="text-gray-700 flex-1">{tip}</p>
                         </div>
-                        <p className="text-gray-700 flex-1">{tip}</p>
+                      ))
+                    ) : (
+                      <div className="flex items-start space-x-3 bg-yellow-50 p-4 rounded-lg">
+                        <div className="bg-yellow-200 rounded-full p-1 mt-1">
+                          <span className="text-yellow-800 font-bold text-sm">1</span>
+                        </div>
+                        <p className="text-gray-700 flex-1">Plan ahead and research local customs and attractions.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
