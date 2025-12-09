@@ -418,21 +418,17 @@ export default function TripPlanner({ currentLocation }: TripPlannerProps) {
                           </div>
                         ))}
 
-                        {day.meals && Array.isArray(day.meals) && day.meals.length > 0 ? (
-                          day.meals.map((meal, index) => (
-                            <div key={index} className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                              <h4 className="font-semibold text-orange-900">
-                                {meal.type} - {meal.restaurant}
-                              </h4>
-                              <p className="text-sm text-orange-800">
-                                🍽️ {meal.speciality} • {meal.cost}
-                              </p>
-                              <p className="text-xs text-orange-700">📍 {meal.location}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-gray-500 text-sm">No meals planned</p>
-                        )}
+                        {day.meals.map((meal, index) => (
+                          <div key={index} className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <h4 className="font-semibold text-orange-900">
+                              {meal.type} - {meal.restaurant}
+                            </h4>
+                            <p className="text-sm text-orange-800">
+                              🍽️ {meal.speciality} • {meal.cost}
+                            </p>
+                            <p className="text-xs text-orange-700">📍 {meal.location}</p>
+                          </div>
+                        ))}
                       </CardContent>
                     </Card>
                   ))}
