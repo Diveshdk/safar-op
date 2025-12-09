@@ -8,6 +8,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Destination, start date, and end date are required" }, { status: 400 })
     }
 
+    const geminiApiKey = process.env.GEMINI_API_KEY
+    if (!geminiApiKey) {
+      console.error("Gemini API key not found in environment variables")
+      return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 })
+    }
+
     // Calculate trip duration
     const start = new Date(startDate)
     const end = new Date(endDate)
@@ -165,222 +171,281 @@ Format as valid JSON:
   ]
 }`
 
-    // Call Gemini API
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
-          },
-        }),
-      },
-    )
-
-    if (!geminiResponse.ok) {
-      throw new Error(`Gemini API error: ${geminiResponse.status}`)
-    }
-
-    const geminiData = await geminiResponse.json()
-    let tripPlan
-
     try {
-      // Extract JSON from Gemini response
-      const responseText = geminiData.candidates[0].content.parts[0].text
-      console.log("Gemini trip plan response:", responseText)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout
 
-      // Try to extract JSON from the response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        tripPlan = JSON.parse(jsonMatch[0])
-      } else {
-        throw new Error("No JSON found in response")
-      }
-    } catch (parseError) {
-      console.error("JSON parsing error:", parseError)
-      // Fallback trip plan
-      tripPlan = {
-        tripOverview: {
-          destination: destination,
-          duration: duration,
-          startDate: startDate,
-          endDate: endDate,
-          summary: `A ${duration}-day adventure in ${destination} with carefully planned activities and experiences.`,
-          highlights: ["Local cultural experiences", "Must-see attractions", "Authentic cuisine"],
-          totalEstimatedCost:
-            budget === "Budget"
-              ? `₹${duration * 3000}`
-              : budget === "Luxury"
-                ? `₹${duration * 15000}`
-                : `₹${duration * 7500}`,
-          bestTimeToVisit: "Great time to visit with pleasant weather",
-        },
-        dailyItinerary: Array.from({ length: duration }, (_, i) => ({
-          day: i + 1,
-          date: new Date(start.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-          title:
-            i === 0
-              ? "Arrival & Exploration"
-              : i === duration - 1
-                ? "Final Day & Departure"
-                : `Day ${i + 1} Adventures`,
-          activities: [
-            {
-              time: "09:00 AM",
-              activity: "Morning exploration",
-              location: `${destination} city center`,
-              duration: "3 hours",
-              cost: "₹1500",
-              description: "Explore the main attractions and get oriented with the city",
-              tips: "Start early to avoid crowds",
-            },
-            {
-              time: "02:00 PM",
-              activity: "Afternoon cultural experience",
-              location: `Local cultural site in ${destination}`,
-              duration: "2 hours",
-              cost: "₹900",
-              description: "Immerse in local culture and traditions",
-              tips: "Respect local customs and dress appropriately",
-            },
-          ],
-          meals: [
-            {
-              type: "Lunch",
-              restaurant: "Local favorite restaurant",
-              location: `${destination} downtown`,
-              cost: "₹750",
-              speciality: "Local specialty dishes",
-            },
-          ],
-          accommodation: {
-            hotel: "Recommended hotel",
-            location: `${destination} city center`,
-            checkIn: "3:00 PM",
-            cost: budget === "Budget" ? "₹1500/night" : budget === "Luxury" ? "₹6000/night" : "₹3000/night",
+      console.log("[v0] Starting trip plan generation for:", destination)
+
+      const geminiResponse = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-goog-api-key": geminiApiKey,
           },
-        })),
-        accommodationDetails: [
-          {
-            name: "Recommended Hotel",
-            type: "Hotel",
-            location: `${destination} city center`,
-            pricePerNight: budget === "Budget" ? "₹1500" : budget === "Luxury" ? "₹6000" : "₹3000",
-            totalNights: duration - 1,
-            totalCost:
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 8192,
+            },
+            safetySettings: [
+              {
+                category: "HARM_CATEGORY_HARASSMENT",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              },
+              {
+                category: "HARM_CATEGORY_HATE_SPEECH",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              },
+              {
+                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              },
+              {
+                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold: "BLOCK_MEDIUM_AND_ABOVE",
+              },
+            ],
+          }),
+          signal: controller.signal,
+        },
+      )
+
+      clearTimeout(timeoutId)
+
+      console.log("[v0] Gemini API response status:", geminiResponse.status)
+
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text()
+        console.error("[v0] Gemini API error response:", errorText)
+        throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`)
+      }
+
+      const geminiData = await geminiResponse.json()
+      console.log("[v0] Gemini API response received, parsing...")
+
+      let tripPlan
+
+      try {
+        // Extract JSON from Gemini response
+        const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
+
+        if (!responseText) {
+          console.error("[v0] No response text from Gemini API")
+          throw new Error("No response text from Gemini API")
+        }
+
+        console.log("[v0] Gemini response text length:", responseText.length)
+
+        // Try to extract JSON from the response
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          tripPlan = JSON.parse(jsonMatch[0])
+          console.log("[v0] Successfully parsed Gemini trip plan response")
+        } else {
+          console.error("[v0] No JSON found in Gemini response")
+          throw new Error("No JSON found in response")
+        }
+      } catch (parseError) {
+        console.error("[v0] JSON parsing error:", parseError)
+
+        // Fallback trip plan
+        tripPlan = {
+          tripOverview: {
+            destination: destination,
+            duration: duration,
+            startDate: startDate,
+            endDate: endDate,
+            summary: `A ${duration}-day adventure in ${destination} with carefully planned activities and experiences.`,
+            highlights: ["Local cultural experiences", "Must-see attractions", "Authentic cuisine"],
+            totalEstimatedCost:
+              budget === "Budget"
+                ? `₹${duration * 3000}`
+                : budget === "Luxury"
+                  ? `₹${duration * 15000}`
+                  : `₹${duration * 7500}`,
+            bestTimeToVisit: "Great time to visit with pleasant weather",
+          },
+          dailyItinerary: Array.from({ length: duration }, (_, i) => ({
+            day: i + 1,
+            date: new Date(start.getTime() + i * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+            title:
+              i === 0
+                ? "Arrival & Exploration"
+                : i === duration - 1
+                  ? "Final Day & Departure"
+                  : `Day ${i + 1} Adventures`,
+            activities: [
+              {
+                time: "09:00 AM",
+                activity: "Morning exploration",
+                location: `${destination} city center`,
+                duration: "3 hours",
+                cost: "₹1500",
+                description: "Explore the main attractions and get oriented with the city",
+                tips: "Start early to avoid crowds",
+              },
+              {
+                time: "02:00 PM",
+                activity: "Afternoon cultural experience",
+                location: `Local cultural site in ${destination}`,
+                duration: "2 hours",
+                cost: "₹900",
+                description: "Immerse in local culture and traditions",
+                tips: "Respect local customs and dress appropriately",
+              },
+            ],
+            meals: [
+              {
+                type: "Lunch",
+                restaurant: "Local favorite restaurant",
+                location: `${destination} downtown`,
+                cost: "₹750",
+                speciality: "Local specialty dishes",
+              },
+            ],
+            accommodation: {
+              hotel: "Recommended hotel",
+              location: `${destination} city center`,
+              checkIn: "3:00 PM",
+              cost: budget === "Budget" ? "₹1500/night" : budget === "Luxury" ? "₹6000/night" : "₹3000/night",
+            },
+          })),
+          accommodationDetails: [
+            {
+              name: "Recommended Hotel",
+              type: "Hotel",
+              location: `${destination} city center`,
+              pricePerNight: budget === "Budget" ? "₹1500" : budget === "Luxury" ? "₹6000" : "₹3000",
+              totalNights: duration - 1,
+              totalCost:
+                budget === "Budget"
+                  ? `₹${(duration - 1) * 1500}`
+                  : budget === "Luxury"
+                    ? `₹${(duration - 1) * 6000}`
+                    : `₹${(duration - 1) * 3000}`,
+              amenities: ["WiFi", "Breakfast", "24/7 Reception"],
+              bookingTips: "Book 2-3 weeks in advance for better rates",
+              alternatives: ["Budget hostel option", "Luxury resort alternative"],
+            },
+          ],
+          transportation: {
+            toDestination: {
+              method: "Flight",
+              details: `Direct flights available to ${destination}`,
+              cost: "₹12000",
+              duration: "3-5 hours",
+              bookingTips: "Book 6-8 weeks in advance for best prices",
+            },
+            localTransport: [
+              {
+                method: "Public transport",
+                cost: "₹300/day",
+                tips: "Buy daily passes for convenience",
+              },
+            ],
+            fromDestination: {
+              method: "Return flight",
+              cost: "₹12000",
+              bookingTips: "Book return ticket with arrival for better rates",
+            },
+          },
+          budgetBreakdown: {
+            accommodation:
               budget === "Budget"
                 ? `₹${(duration - 1) * 1500}`
                 : budget === "Luxury"
                   ? `₹${(duration - 1) * 6000}`
                   : `₹${(duration - 1) * 3000}`,
-            amenities: ["WiFi", "Breakfast", "24/7 Reception"],
-            bookingTips: "Book 2-3 weeks in advance for better rates",
-            alternatives: ["Budget hostel option", "Luxury resort alternative"],
+            transportation: "₹24000",
+            food: `₹${duration * 1800}`,
+            activities: `₹${duration * 2400}`,
+            shopping: `₹${duration * 900}`,
+            miscellaneous: `₹${duration * 600}`,
+            total:
+              budget === "Budget"
+                ? `₹${duration * 3000}`
+                : budget === "Luxury"
+                  ? `₹${duration * 15000}`
+                  : `₹${duration * 7500}`,
+            dailyAverage: budget === "Budget" ? "₹3000" : budget === "Luxury" ? "₹15000" : "₹7500",
+            budgetTips: ["Use public transport", "Eat at local places", "Book activities in advance"],
           },
-        ],
-        transportation: {
-          toDestination: {
-            method: "Flight",
-            details: `Direct flights available to ${destination}`,
-            cost: "₹12000",
-            duration: "3-5 hours",
-            bookingTips: "Book 6-8 weeks in advance for best prices",
+          packingList: {
+            clothing: ["Comfortable walking shoes", "Weather-appropriate clothes", "Light jacket"],
+            electronics: ["Phone charger", "Camera", "Power bank"],
+            documents: ["Passport", "Travel insurance", "Hotel confirmations"],
+            healthAndSafety: ["First aid kit", "Personal medications", "Hand sanitizer"],
+            miscellaneous: ["Reusable water bottle", "Day backpack", "Travel adapter"],
+            weatherSpecific: ["Sunscreen", "Umbrella", "Comfortable clothes"],
           },
-          localTransport: [
+          importantTips: [
+            "Learn basic local phrases",
+            "Keep copies of important documents",
+            "Inform bank about travel plans",
+            "Research local customs and etiquette",
+            "Download offline maps",
+          ],
+          emergencyInfo: {
+            localEmergency: "Local emergency services: 100, 101, 102",
+            nearestHospital: `${destination} General Hospital`,
+            embassy: "Contact your embassy if traveling internationally",
+            importantContacts: ["Hotel reception", "Local tour guide"],
+            safetyTips: ["Stay aware of surroundings", "Keep valuables secure"],
+          },
+          bookingChecklist: [
             {
-              method: "Public transport",
-              cost: "₹300/day",
-              tips: "Buy daily passes for convenience",
+              item: "Book flights",
+              deadline: "6-8 weeks before",
+              priority: "High",
+            },
+            {
+              item: "Book accommodation",
+              deadline: "4-6 weeks before",
+              priority: "High",
+            },
+            {
+              item: "Get travel insurance",
+              deadline: "2 weeks before",
+              priority: "Medium",
             },
           ],
-          fromDestination: {
-            method: "Return flight",
-            cost: "₹12000",
-            bookingTips: "Book return ticket with arrival for better rates",
-          },
-        },
-        budgetBreakdown: {
-          accommodation:
-            budget === "Budget"
-              ? `₹${(duration - 1) * 1500}`
-              : budget === "Luxury"
-                ? `₹${(duration - 1) * 6000}`
-                : `₹${(duration - 1) * 3000}`,
-          transportation: "₹24000",
-          food: `₹${duration * 1800}`,
-          activities: `₹${duration * 2400}`,
-          shopping: `₹${duration * 900}`,
-          miscellaneous: `₹${duration * 600}`,
-          total:
-            budget === "Budget"
-              ? `₹${duration * 3000}`
-              : budget === "Luxury"
-                ? `₹${duration * 15000}`
-                : `₹${duration * 7500}`,
-          dailyAverage: budget === "Budget" ? "₹3000" : budget === "Luxury" ? "₹15000" : "₹7500",
-          budgetTips: ["Use public transport", "Eat at local places", "Book activities in advance"],
-        },
-        packingList: {
-          clothing: ["Comfortable walking shoes", "Weather-appropriate clothes", "Light jacket"],
-          electronics: ["Phone charger", "Camera", "Power bank"],
-          documents: ["Passport", "Travel insurance", "Hotel confirmations"],
-          healthAndSafety: ["First aid kit", "Personal medications", "Hand sanitizer"],
-          miscellaneous: ["Reusable water bottle", "Day backpack", "Travel adapter"],
-          weatherSpecific: ["Sunscreen", "Umbrella", "Comfortable clothes"],
-        },
-        importantTips: [
-          "Learn basic local phrases",
-          "Keep copies of important documents",
-          "Inform bank about travel plans",
-          "Research local customs and etiquette",
-          "Download offline maps",
-        ],
-        emergencyInfo: {
-          localEmergency: "Local emergency services: 100, 101, 102",
-          nearestHospital: `${destination} General Hospital`,
-          embassy: "Contact your embassy if traveling internationally",
-          importantContacts: ["Hotel reception", "Local tour guide"],
-          safetyTips: ["Stay aware of surroundings", "Keep valuables secure"],
-        },
-        bookingChecklist: [
-          {
-            item: "Book flights",
-            deadline: "6-8 weeks before",
-            priority: "High",
-          },
-          {
-            item: "Book accommodation",
-            deadline: "4-6 weeks before",
-            priority: "High",
-          },
-          {
-            item: "Get travel insurance",
-            deadline: "2 weeks before",
-            priority: "Medium",
-          },
-        ],
+        }
       }
-    }
 
-    return NextResponse.json(tripPlan)
+      console.log("[v0] Trip plan generated successfully")
+      return NextResponse.json(tripPlan)
+    } catch (geminiError) {
+      console.error("[v0] Gemini API error:", geminiError)
+
+      if (geminiError instanceof Error && geminiError.name === "AbortError") {
+        console.error("[v0] Gemini API request timed out")
+        return NextResponse.json(
+          {
+            error: "Request timed out. Please try again.",
+            details: "The AI service took too long to respond",
+          },
+          { status: 408 },
+        )
+      }
+
+      throw geminiError
+    }
   } catch (error) {
-    console.error("Trip planner error:", error)
+    console.error("[v0] Trip planner error:", error)
     return NextResponse.json(
       {
         error: "Failed to generate trip plan. Please try again.",
