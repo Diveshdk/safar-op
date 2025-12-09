@@ -4,6 +4,8 @@ export async function POST(request: NextRequest) {
   try {
     const { destination, startDate, endDate, budget, travelers, preferences } = await request.json()
 
+    console.log("[v0] Trip planner request:", { destination, startDate, endDate, budget, travelers, preferences })
+
     if (!destination || !startDate || !endDate) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
@@ -12,130 +14,152 @@ export async function POST(request: NextRequest) {
 
     const start = new Date(startDate)
     const end = new Date(endDate)
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+    console.log("[v0] Trip duration:", days, "days")
 
     if (days <= 0) {
       return NextResponse.json({ error: "Invalid dates" }, { status: 400 })
     }
 
-    const prompt = `Create a detailed ${days}-day trip plan for ${destination} from ${startDate} to ${endDate}. Budget: ${budget}. Travelers: ${travelers}. Preferences: ${preferences}. 
+    const prompt = `You are an expert travel planner. Create a detailed, realistic ${days}-day trip itinerary for ${destination} from ${startDate} to ${endDate}.
 
-Return ONLY valid JSON (no markdown, no code blocks, just raw JSON) with this exact structure:
+Budget Category: ${budget}
+Number of Travelers: ${travelers}
+Travel Preferences: ${preferences}
+
+IMPORTANT: Return ONLY valid JSON with NO markdown, NO code blocks, NO explanations - just raw JSON:
+
 {
   "tripOverview": {
     "destination": "${destination}",
     "duration": ${days},
     "startDate": "${startDate}",
     "endDate": "${endDate}",
-    "summary": "Brief summary",
+    "summary": "A brief compelling summary of the trip",
     "highlights": ["Highlight 1", "Highlight 2", "Highlight 3"],
-    "totalEstimatedCost": "₹50000",
-    "bestTimeToVisit": "All year round"
+    "totalEstimatedCost": "Estimated total cost",
+    "bestTimeToVisit": "Best season/months to visit"
   },
   "dailyItinerary": [
     {
       "day": 1,
       "date": "${startDate}",
-      "title": "Arrival",
+      "title": "Day title",
+      "theme": "Daily theme",
       "activities": [
         {
           "time": "09:00 AM",
           "activity": "Activity name",
-          "location": "Location",
+          "location": "Specific location",
           "duration": "2 hours",
-          "cost": "₹500",
-          "description": "Description",
-          "tips": "Tips"
+          "cost": "Cost estimate",
+          "description": "Detailed description",
+          "tips": "Practical tips"
         }
       ],
       "meals": [
         {
-          "type": "Lunch",
-          "restaurant": "Restaurant",
+          "type": "Breakfast/Lunch/Dinner",
+          "restaurant": "Restaurant name",
           "location": "Location",
-          "cost": "₹300",
-          "speciality": "Specialty"
+          "cost": "Cost",
+          "speciality": "What makes it special",
+          "must_try_dish": "Recommended dish"
         }
       ],
       "accommodation": {
         "hotel": "Hotel name",
         "location": "Location",
-        "checkIn": "3:00 PM",
-        "cost": "₹2000/night"
-      }
+        "checkIn": "Time",
+        "cost": "Cost per night"
+      },
+      "evening": "Evening activity/plan"
     }
   ],
   "accommodationDetails": [
     {
-      "name": "Hotel",
-      "type": "Hotel",
-      "location": "Location",
-      "pricePerNight": "₹2000",
+      "name": "Hotel name",
+      "type": "Hotel type (5-star, 3-star, etc)",
+      "location": "Area/neighborhood",
+      "pricePerNight": "Price",
       "totalNights": ${days - 1},
-      "totalCost": "₹${(days - 1) * 2000}",
-      "amenities": ["WiFi", "Breakfast"],
-      "bookingTips": "Book in advance",
-      "alternatives": ["Alt 1", "Alt 2"]
+      "totalCost": "Total",
+      "amenities": ["WiFi", "Swimming pool", "Restaurant"],
+      "bookingTips": "How to book",
+      "why_recommended": "Why this hotel",
+      "alternatives": ["Alternative 1", "Alternative 2"]
     }
   ],
   "transportation": {
     "toDestination": {
-      "method": "Flight",
-      "details": "Details",
-      "cost": "₹5000",
-      "duration": "3 hours",
-      "bookingTips": "Book early"
+      "method": "Flight/Train/Bus/Car",
+      "details": "Specific details",
+      "cost": "Estimated cost",
+      "duration": "Time taken",
+      "bookingTips": "Booking advice"
     },
     "localTransport": [
       {
-        "method": "Taxi",
-        "cost": "₹500/day",
+        "method": "Transport type",
+        "costPerDay": "Daily cost",
+        "bestFor": "When to use",
         "tips": "Tips"
       }
     ],
     "fromDestination": {
-      "method": "Flight",
-      "cost": "₹5000",
-      "bookingTips": "Return booking"
+      "method": "Return method",
+      "cost": "Cost",
+      "bookingTips": "Return booking advice"
     }
   },
   "budgetBreakdown": {
-    "accommodation": "₹${(days - 1) * 2000}",
-    "transportation": "₹10000",
-    "food": "₹${days * 1500}",
-    "activities": "₹${days * 1000}",
-    "shopping": "₹${days * 500}",
-    "miscellaneous": "₹${days * 300}",
-    "total": "₹${(days - 1) * 2000 + 10000 + days * 1500 + days * 1000 + days * 500 + days * 300}",
-    "dailyAverage": "₹3000",
-    "budgetTips": ["Tip 1", "Tip 2"]
+    "accommodation": "Accommodation cost",
+    "transportation": "Transport cost",
+    "food": "Food cost",
+    "activities": "Activities cost",
+    "shopping": "Shopping budget",
+    "miscellaneous": "Other costs",
+    "total": "Grand total",
+    "dailyAverage": "Average per day",
+    "budgetTips": ["Tip 1", "Tip 2", "Tip 3"]
   },
   "packingList": {
-    "clothing": ["Shoes", "Clothes"],
-    "electronics": ["Phone", "Charger"],
-    "documents": ["Passport", "Tickets"],
-    "healthAndSafety": ["First aid", "Medicines"],
-    "miscellaneous": ["Bottle", "Backpack"],
-    "weatherSpecific": ["Sunscreen", "Umbrella"]
+    "clothing": ["Items"],
+    "electronics": ["Items"],
+    "documents": ["Items"],
+    "healthAndSafety": ["Items"],
+    "miscellaneous": ["Items"],
+    "weatherSpecific": ["Items based on season"]
+  },
+  "localInfo": {
+    "bestLocalDishes": ["Dish 1", "Dish 2"],
+    "localShoppingMarkets": ["Market 1", "Market 2"],
+    "bestPhotoSpots": ["Spot 1", "Spot 2"],
+    "localTraditions": "Important traditions to know",
+    "tippingCustoms": "Tipping etiquette"
   },
   "importantTips": ["Tip 1", "Tip 2", "Tip 3"],
   "emergencyInfo": {
-    "localEmergency": "100",
-    "nearestHospital": "Hospital name",
+    "localEmergency": "Emergency number",
+    "nearestHospital": "Hospital location",
+    "policeStation": "Police location",
     "embassy": "Embassy info",
-    "importantContacts": ["Contact"],
-    "safetyTips": ["Tip"]
+    "importantContacts": ["Contact 1", "Contact 2"],
+    "safetyTips": ["Safety tip 1", "Safety tip 2"]
   },
   "bookingChecklist": [
     {
-      "item": "Book flights",
-      "deadline": "6 weeks before",
-      "priority": "High"
+      "item": "Task name",
+      "deadline": "When to do",
+      "priority": "High/Medium/Low"
     }
   ]
 }`
 
-    const response = await fetch(
+    console.log("[v0] Sending request to Gemini API...")
+
+    const geminiResponse = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
       {
         method: "POST",
@@ -153,270 +177,99 @@ Return ONLY valid JSON (no markdown, no code blocks, just raw JSON) with this ex
               ],
             },
           ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 8000,
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_UNSPECIFIED",
+              threshold: "BLOCK_NONE",
+            },
+          ],
         }),
       },
     )
 
-    if (!response.ok) {
-      throw new Error(`Gemini API failed: ${response.status}`)
+    console.log("[v0] Gemini response status:", geminiResponse.status)
+
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.text()
+      console.error("[v0] Gemini API error:", errorData)
+      throw new Error(`Gemini API failed with status ${geminiResponse.status}: ${errorData}`)
     }
 
-    const data = await response.json()
-    const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text
+    const geminiData = await geminiResponse.json()
+    console.log("[v0] Gemini response received")
+
+    const textContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
 
     if (!textContent) {
-      throw new Error("No response from Gemini")
+      console.error("[v0] No text content in Gemini response:", geminiData)
+      throw new Error("No response text from Gemini")
     }
 
+    console.log("[v0] Extracting JSON from response...")
+
+    // Extract JSON - try multiple strategies
+    let tripPlan = null
+
+    // Strategy 1: Look for JSON object
     const jsonMatch = textContent.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error("No JSON in response")
+    if (jsonMatch) {
+      try {
+        tripPlan = JSON.parse(jsonMatch[0])
+        console.log("[v0] Successfully parsed JSON from Gemini response")
+      } catch (e) {
+        console.error("[v0] Failed to parse JSON:", e)
+      }
     }
 
-    const tripPlan = JSON.parse(jsonMatch[0])
+    if (!tripPlan) {
+      console.error("[v0] Could not extract valid JSON from response")
+      throw new Error("Invalid JSON in Gemini response")
+    }
 
-    return NextResponse.json(tripPlan)
-  } catch (error) {
-    return NextResponse.json({
-      tripOverview: {
-        destination: "Destination",
-        duration: 3,
-        startDate: "2025-12-11",
-        endDate: "2025-12-14",
-        summary: "A wonderful trip awaits you!",
-        highlights: ["Exploring local culture", "Adventure activities", "Local cuisine"],
-        totalEstimatedCost: "₹15000",
-        bestTimeToVisit: "Year round",
-      },
-      dailyItinerary: [
-        {
-          day: 1,
-          date: "2025-12-11",
-          title: "Arrival & Exploration",
-          activities: [
-            {
-              time: "09:00 AM",
-              activity: "Arrive and settle in",
-              location: "Hotel",
-              duration: "2 hours",
-              cost: "₹0",
-              description: "Check in and relax",
-              tips: "Rest after travel",
-            },
-            {
-              time: "02:00 PM",
-              activity: "Local exploration",
-              location: "City center",
-              duration: "3 hours",
-              cost: "₹500",
-              description: "Walk around and get familiar",
-              tips: "Wear comfortable shoes",
-            },
-          ],
-          meals: [
-            {
-              type: "Breakfast",
-              restaurant: "Hotel Restaurant",
-              location: "Hotel",
-              cost: "₹300",
-              speciality: "Continental",
-            },
-            {
-              type: "Lunch",
-              restaurant: "Local Eatery",
-              location: "City Center",
-              cost: "₹400",
-              speciality: "Local cuisine",
-            },
-            {
-              type: "Dinner",
-              restaurant: "Specialty Restaurant",
-              location: "Main Street",
-              cost: "₹600",
-              speciality: "Traditional dishes",
-            },
-          ],
-          accommodation: {
-            hotel: "Star Hotel",
-            location: "City Center",
-            checkIn: "3:00 PM",
-            cost: "₹2000/night",
-          },
-        },
-        {
-          day: 2,
-          date: "2025-12-12",
-          title: "Adventure Day",
-          activities: [
-            {
-              time: "08:00 AM",
-              activity: "Adventure activity",
-              location: "Adventure site",
-              duration: "4 hours",
-              cost: "₹1500",
-              description: "Thrilling experience",
-              tips: "Bring camera",
-            },
-          ],
-          meals: [
-            {
-              type: "Breakfast",
-              restaurant: "Hotel Restaurant",
-              location: "Hotel",
-              cost: "₹300",
-              speciality: "Continental",
-            },
-            {
-              type: "Lunch",
-              restaurant: "Adventure site cafe",
-              location: "Adventure site",
-              cost: "₹500",
-              speciality: "Quick bites",
-            },
-            {
-              type: "Dinner",
-              restaurant: "Local Restaurant",
-              location: "Downtown",
-              cost: "₹700",
-              speciality: "Regional cuisine",
-            },
-          ],
-          accommodation: {
-            hotel: "Star Hotel",
-            location: "City Center",
-            checkIn: "7:00 PM",
-            cost: "₹2000/night",
-          },
-        },
-        {
-          day: 3,
-          date: "2025-12-13",
-          title: "Cultural Experience",
-          activities: [
-            {
-              time: "10:00 AM",
-              activity: "Visit cultural site",
-              location: "Museum/Temple",
-              duration: "3 hours",
-              cost: "₹200",
-              description: "Learn local history",
-              tips: "Respect local customs",
-            },
-          ],
-          meals: [
-            {
-              type: "Breakfast",
-              restaurant: "Hotel Restaurant",
-              location: "Hotel",
-              cost: "₹300",
-              speciality: "Continental",
-            },
-            {
-              type: "Lunch",
-              restaurant: "Cultural area cafe",
-              location: "Cultural site",
-              cost: "₹400",
-              speciality: "Local specialties",
-            },
-            {
-              type: "Dinner",
-              restaurant: "Fine dining",
-              location: "City center",
-              cost: "₹800",
-              speciality: "Premium cuisine",
-            },
-          ],
-          accommodation: {
-            hotel: "Star Hotel",
-            location: "City Center",
-            checkIn: "7:00 PM",
-            cost: "₹2000/night",
-          },
-        },
-      ],
-      accommodationDetails: [
-        {
-          name: "Star Hotel",
-          type: "4-star Hotel",
-          location: "City Center",
-          pricePerNight: "₹2000",
-          totalNights: 2,
-          totalCost: "₹4000",
-          amenities: ["WiFi", "Breakfast", "Gym", "Restaurant"],
-          bookingTips: "Book 2 weeks in advance",
-          alternatives: ["Budget hotel - ₹1000", "Luxury hotel - ₹5000"],
-        },
-      ],
-      transportation: {
-        toDestination: {
-          method: "Flight",
-          details: "Morning flight",
-          cost: "₹3000",
-          duration: "2 hours",
-          bookingTips: "Book early",
-        },
-        localTransport: [
+    // Ensure meals array exists in all daily itineraries
+    if (tripPlan.dailyItinerary) {
+      tripPlan.dailyItinerary = tripPlan.dailyItinerary.map((day: any) => ({
+        ...day,
+        meals: day.meals || [
           {
-            method: "Taxi",
-            cost: "₹500/day",
-            tips: "Use official taxis",
+            type: "Breakfast",
+            restaurant: "Local cafe",
+            location: day.title || "Local area",
+            cost: "₹300",
+            speciality: "Local breakfast",
           },
           {
-            method: "Bus",
-            cost: "₹100/ride",
-            tips: "Good for sightseeing",
+            type: "Lunch",
+            restaurant: "Local restaurant",
+            location: day.title || "Local area",
+            cost: "₹500",
+            speciality: "Local cuisine",
+          },
+          {
+            type: "Dinner",
+            restaurant: "Local restaurant",
+            location: day.title || "Local area",
+            cost: "₹600",
+            speciality: "Local specialties",
           },
         ],
-        fromDestination: {
-          method: "Flight",
-          cost: "₹3000",
-          bookingTips: "Return booking",
-        },
+      }))
+    }
+
+    console.log("[v0] Trip plan generated successfully")
+    return NextResponse.json(tripPlan)
+  } catch (error) {
+    console.error("[v0] Trip planner error:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to generate trip plan",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
-      budgetBreakdown: {
-        accommodation: "₹4000",
-        transportation: "₹6000",
-        food: "₹4500",
-        activities: "₹3000",
-        shopping: "₹1500",
-        miscellaneous: "₹900",
-        total: "₹19900",
-        dailyAverage: "₹6633",
-        budgetTips: ["Book in advance", "Look for discounts"],
-      },
-      packingList: {
-        clothing: ["Comfortable shoes", "Light clothes", "Jacket"],
-        electronics: ["Phone", "Charger", "Camera"],
-        documents: ["ID", "Tickets", "Hotel booking"],
-        healthAndSafety: ["First aid kit", "Sunscreen", "Medicines"],
-        miscellaneous: ["Water bottle", "Backpack"],
-        weatherSpecific: ["Umbrella", "Hat"],
-      },
-      importantTips: ["Stay hydrated", "Respect local customs", "Keep valuables safe"],
-      emergencyInfo: {
-        localEmergency: "100",
-        nearestHospital: "City Hospital",
-        embassy: "Check embassy website",
-        importantContacts: ["Hotel: +91-XXX-XXX-XXXX"],
-        safetyTips: ["Avoid late night travel", "Use official taxis"],
-      },
-      bookingChecklist: [
-        {
-          item: "Book flights",
-          deadline: "4 weeks before",
-          priority: "High",
-        },
-        {
-          item: "Book hotel",
-          deadline: "2 weeks before",
-          priority: "High",
-        },
-        {
-          item: "Book activities",
-          deadline: "1 week before",
-          priority: "Medium",
-        },
-      ],
-    })
+      { status: 500 },
+    )
   }
 }
