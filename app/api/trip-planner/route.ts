@@ -8,11 +8,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Destination, start date, and end date are required" }, { status: 400 })
     }
 
-    const geminiApiKey = process.env.GEMINI_API_KEY
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
+
+    console.log("[v0] Checking Gemini API key...")
+    console.log(
+      "[v0] Environment vars available:",
+      Object.keys(process.env).filter((k) => k.includes("GEMINI") || k.includes("gemini")),
+    )
+
     if (!geminiApiKey) {
-      console.error("Gemini API key not found in environment variables")
-      return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 })
+      console.error("[v0] Gemini API key not found in environment variables")
+      console.error(
+        "[v0] Available keys:",
+        Object.keys(process.env).filter((k) => k.includes("API") || k.includes("KEY")),
+      )
+      return NextResponse.json(
+        {
+          error: "Gemini API key not configured",
+          availableKeys: Object.keys(process.env).length,
+        },
+        { status: 500 },
+      )
     }
+
+    console.log("[v0] API Key found, length:", geminiApiKey.length)
 
     // Calculate trip duration
     const start = new Date(startDate)
@@ -23,7 +42,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "End date must be after start date" }, { status: 400 })
     }
 
-    // Enhanced Gemini prompt for detailed trip planning
     const prompt = `You are an expert travel planner. Create a detailed, day-by-day trip plan for "${destination}" from ${startDate} to ${endDate} (${duration} days).
 
 Trip Details:
@@ -173,9 +191,48 @@ Format as valid JSON:
 
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 90000)
 
       console.log("[v0] Starting trip plan generation for:", destination)
+      console.log("[v0] Making request to Gemini API...")
+
+      const requestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+        ],
+      }
+
+      console.log("[v0] Request body prepared, sending to API...")
 
       const geminiResponse = await fetch(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
@@ -185,41 +242,7 @@ Format as valid JSON:
             "Content-Type": "application/json",
             "X-goog-api-key": geminiApiKey,
           },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: prompt,
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 8192,
-            },
-            safetySettings: [
-              {
-                category: "HARM_CATEGORY_HARASSMENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_HATE_SPEECH",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-              {
-                category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                threshold: "BLOCK_MEDIUM_AND_ABOVE",
-              },
-            ],
-          }),
+          body: JSON.stringify(requestBody),
           signal: controller.signal,
         },
       )
@@ -227,30 +250,31 @@ Format as valid JSON:
       clearTimeout(timeoutId)
 
       console.log("[v0] Gemini API response status:", geminiResponse.status)
+      console.log("[v0] Response headers:", Object.fromEntries(geminiResponse.headers.entries()))
 
       if (!geminiResponse.ok) {
         const errorText = await geminiResponse.text()
         console.error("[v0] Gemini API error response:", errorText)
+        console.error("[v0] Status code:", geminiResponse.status)
         throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`)
       }
 
       const geminiData = await geminiResponse.json()
-      console.log("[v0] Gemini API response received, parsing...")
+      console.log("[v0] Gemini API response received")
 
       let tripPlan
 
       try {
-        // Extract JSON from Gemini response
         const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text
 
         if (!responseText) {
           console.error("[v0] No response text from Gemini API")
+          console.error("[v0] Response structure:", JSON.stringify(geminiData).substring(0, 500))
           throw new Error("No response text from Gemini API")
         }
 
         console.log("[v0] Gemini response text length:", responseText.length)
 
-        // Try to extract JSON from the response
         const jsonMatch = responseText.match(/\{[\s\S]*\}/)
         if (jsonMatch) {
           tripPlan = JSON.parse(jsonMatch[0])
@@ -262,7 +286,6 @@ Format as valid JSON:
       } catch (parseError) {
         console.error("[v0] JSON parsing error:", parseError)
 
-        // Fallback trip plan
         tripPlan = {
           tripOverview: {
             destination: destination,
